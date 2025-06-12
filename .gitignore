@@ -192,3 +192,8 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Desktop Services Store
+#   Ignore macOS's .DS_Store files, which store custom attributes of a folder.
+#   These files are created automatically by Finder and can be safely ignored.
+.DS_Store
