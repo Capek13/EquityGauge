@@ -16,6 +16,7 @@ class YahooFinanceSeleniumDriver:
     """
     REQUESTS_TIMEOUT = 5  # seconds
     TARGETED_URL = "https://finance.yahoo.com/quote/"
+    USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     def __init__(self):
         self.driver = self._open_selenium_driver()  # Will hold the Selenium WebDriver instance
         self.accept_cookies()  # Accept cookies on the Yahoo Finance page
@@ -30,7 +31,8 @@ class YahooFinanceSeleniumDriver:
         options.add_argument("--headless")  # Run in headless mode (no GUI)
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
-        
+        options.add_argument(f"user-agent={self.USER_AGENT}") # Set a user agent to mimic a real browser
+
         # Initialize the WebDriver 
         return webdriver.Chrome(options=options)
     
