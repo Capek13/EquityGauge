@@ -9,6 +9,60 @@ from selenium.webdriver.support import  expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
 
+class YahooFinanceSeleniumDriver:
+    """
+    A class to manage the Selenium WebDriver for Yahoo Finance scraping.
+    This class is used to initialize and manage the Selenium WebDriver instance.
+    """
+    REQUESTS_TIMEOUT = 5  # seconds
+    TARGETED_URL = "https://finance.yahoo.com/quote/"
+    def __init__(self):
+        self.driver = self._open_selenium_driver()  # Will hold the Selenium WebDriver instance
+        self.accept_cookies()  # Accept cookies on the Yahoo Finance page
+
+    def _open_selenium_driver(self)->webdriver.Chrome | None:
+        """
+        Initializes the Selenium WebDriver with Chrome options for headless operation.
+        Returns a WebDriver instance or None if an error occurs.
+        """
+        # Set up Selenium WebDriver with Chrome options
+        options = Options()
+        options.add_argument("--headless")  # Run in headless mode (no GUI)
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        
+        # Initialize the WebDriver 
+        return webdriver.Chrome(options=options)
+    
+    def accept_cookies(self):
+        """
+        Attempts to find and click the "Accept All" cookies button on the Yahoo Finance page.
+        """
+        try:
+            # Open the URL
+            self.driver.get(self.TARGETED_URL)
+            accept_button = WebDriverWait(self.driver, self.REQUESTS_TIMEOUT).until(
+                # Wait for the "Accept All" button to be clickable
+                # By.XPATH is used to locate the button by its text, // is for find elements anywhere on page
+                # sometimes is in button tag, sometimes in a div or span -> //button//span[contains(text(), 'Accept All')]
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept all')]"))
+            )
+            accept_button.click()  # Click the "Accept All" button if it appears
+            print(f"Clicked 'Accept all' button for {self.TARGETED_URL}")
+        except Exception as e:
+            print(f"No 'Accept all' button found for {self.TARGETED_URL} or it was not clickable: {e}")
+        
+    def close_driver(self):
+        """
+        Closes the Selenium WebDriver.
+        """
+        if self.driver:
+            self.driver.quit()
+            print("Selenium WebDriver closed.")
+        else:
+            print("No Selenium WebDriver to close.")
+
+
 class YahooFinanceScraper:
     TARGETED_URL = "https://finance.yahoo.com/quote/"
     HEADER = {
@@ -18,9 +72,9 @@ class YahooFinanceScraper:
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Connection': 'keep-alive',
         }
-    REQUESTS_TIMEOUT = 5  # seconds
+    REQUESTS_TIMEOUT = 2  # seconds
     
-    def __init__(self, ticker: str):
+    def __init__(self, ticker: str, selenium_driver: YahooFinanceSeleniumDriver ):
         """
         Inializated the YahooFinanceScraper with a stock ticker.
         :param ticker: Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)
@@ -30,6 +84,7 @@ class YahooFinanceScraper:
         self.ticker = ticker.upper() # Convert ticker to uppercase for consistency
         self.ticker_targeted_url = f"{self.TARGETED_URL}{self.ticker}/" 
         self.soup = None # Will hold the BeautifulSoup object after fetching the page
+        self.selenium_driver = selenium_driver  # Will hold the Selenium WebDriver instance; webdriver.Chrome() will be used to initialize it
 
     def _fetch_page_request(self, url: str)-> BeautifulSoup | None:
         """
@@ -57,39 +112,19 @@ class YahooFinanceScraper:
         except Exception as e:
             print(f"An unexpected error occurred during page fetch for {self.ticker}: {e}")
             return None
-    
+
     def _fetch_page_selenium(self, url: str)-> BeautifulSoup | None:
         """
         Fetches the content of a given URL using Selenium and returns a BeautifulSoup object or None if an error occurs.
         """
-         # Set up Selenium WebDriver with Chrome options
-        options = Options()
-        options.add_argument("--headless")  # Run in headless mode (no GUI)
-        options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        
-         # Initialize the WebDriver 
-        driver = webdriver.Chrome(options=options)
-
         try:
             # Open the URL
-            driver.get(self.ticker_targeted_url)
-            try:
-                accept_button = WebDriverWait(driver, self.REQUESTS_TIMEOUT).until(
-                    # Wait for the "Accept All" button to be clickable
-                    # By.XPATH is used to locate the button by its text, // is for find elements anywhere on page
-                    # sometimes is in button tag, sometimes in a div or span -> //button//span[contains(text(), 'Accept All')]
-                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept all')]"))
-                )
-                accept_button.click()  # Click the "Accept All" button if it appears
-                print(f"Clicked 'Accept All' button for {self.TARGETED_URL}")
-            except Exception as e:
-                print(f"No 'Accept All' button found for {self.TARGETED_URL} or it was not clickable: {e}")
+            self.selenium_driver.get(self.ticker_targeted_url)
 
             # Wait for the page to load completely
             time.sleep(self.REQUESTS_TIMEOUT) 
             # Get the page source
-            page_content = driver.page_source
+            page_content = self.selenium_driver.page_source
             print(f"Successfully fetched page for {self.ticker} from {url}")
             return BeautifulSoup(page_content, 'html.parser')
         except Exception as e:
@@ -110,7 +145,6 @@ class YahooFinanceScraper:
                 return None
         try:
             pe_row_header = self.soup.find('p', string=re.compile(r'Trailing P/E', re.IGNORECASE))
-            print(pe_row_header)
             if pe_row_header:
                 # Find the next sibling <p> element which contains the P/E value
                 pe_value_element = pe_row_header.find_next_sibling('p')
@@ -130,11 +164,16 @@ if __name__ == "__main__":
     # You can replace these tickers with any valid stock ticker symbols
     tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
     tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
-    tickers_to_scrape = ["META"]
+    # tickers_to_scrape = ["META"]
 
+    # Initialize the Selenium driver
+    selenium_driver = YahooFinanceSeleniumDriver()
+    if not selenium_driver.driver:
+        print("Failed to initialize Selenium WebDriver. Exiting.")
+        exit(1)
     # Loop through the tickers and scrape the P/E ratio
     for ticker in tickers_to_scrape:
-        scraper = YahooFinanceScraper(ticker)
+        scraper = YahooFinanceScraper(ticker, selenium_driver.driver)
         pe = scraper.get_pe_ratio()
 
         if pe is not None:
@@ -143,3 +182,6 @@ if __name__ == "__main__":
             print(f"Could not retrieve P/E Ratio for {ticker}.")
         print("-" * 30) 
     
+    # Close the Selenium driver
+    selenium_driver.close_driver()
+    print("Scraping completed.")
