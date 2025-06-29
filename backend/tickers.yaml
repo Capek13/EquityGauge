@@ -1,0 +1,57 @@
+tickers:
+  - ticker: AAPL
+    name: Apple Inc.
+    exchange: NASDAQ
+    currency: USD
+    sector: Technology
+    watchlist: true
+    industry: Consumer Electronics
+  - ticker: MSFT
+    name: Microsoft Corporation
+    exchange: NASDAQ
+    currency: USD
+    sector: Technology
+    watchlist: true
+    industry: Software - Infrastructure
+  - ticker: GOOGL
+    name: Alphabet Inc.
+    exchange: NASDAQ
+    currency: USD 
+    sector: Communication Services
+    watchlist: true
+    industry: Internet Content & Information
+  - ticker: AMZN
+    name: Amazon.com, Inc.
+    exchange: NASDAQ
+    currency: USD
+    sector: Consumer Discretionary
+    watchlist: true
+    industry: Internet Retail
+  - ticker: TSLA
+    name: Tesla, Inc.
+    exchange: NASDAQ 
+    currency: USD  
+    sector: Consumer Discretionary
+    watchlist: true
+    industry: Auto Manufacturers - Major
+  - ticker: FB
+    name: Meta Platforms, Inc.
+    exchange: NASDAQ
+    currency: USD
+    sector: Communication Services
+    watchlist: true
+    industry: Internet Content & Information
+  - ticker: NFLX
+    name: Netflix, Inc.
+    exchange: NASDAQ
+    currency: USD
+    sector: Communication Services
+    watchlist: true
+    industry: Entertainment
+  - ticker: NVDA
+    name: NVIDIA Corporation
+    exchange: NASDAQ
+    currency: USD
+    sector: Technology
+    watchlist: true
+    industry: Semiconductors   
