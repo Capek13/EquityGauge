@@ -197,3 +197,7 @@ cython_debug/
 #   Ignore macOS's .DS_Store files, which store custom attributes of a folder.
 #   These files are created automatically by Finder and can be safely ignored.
 .DS_Store
+
+# Temporary files created by text editors
+#   These files are often created by text editors to store unsaved changes or backups.
+tempCodeRunnerFile.py
