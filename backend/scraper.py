@@ -87,6 +87,7 @@ class YahooFinanceScraper:
         self.ticker_targeted_url = f"{self.TARGETED_URL}{self.ticker}/" 
         self.soup = None # Will hold the BeautifulSoup object after fetching the page
         self.selenium_driver = selenium_driver  # Will hold the Selenium WebDriver instance; webdriver.Chrome() will be used to initialize it
+        self.connection_attemps = 3  # Number of attempts to connect to the page
 
     def _fetch_page_request(self, url: str)-> BeautifulSoup | None:
         """
@@ -114,6 +115,15 @@ class YahooFinanceScraper:
         except Exception as e:
             print(f"An unexpected error occurred during page fetch for {self.ticker}: {e}")
             return None
+        
+    def _retry_fetch_page_selenium(self, url: str) -> BeautifulSoup | None:
+        if self.connection_attemps > 0:
+            print(f"Retrying to fetch page for {self.ticker}. Attempts left: {self.connection_attemps}")
+            self.connection_attemps -= 1
+            return self._fetch_page_selenium(url)
+        else:            
+            print(f"Failed to fetch page for {self.ticker} after multiple attempts.")
+        return None
 
     def _fetch_page_selenium(self, url: str)-> BeautifulSoup | None:
         """
@@ -127,6 +137,38 @@ class YahooFinanceScraper:
             time.sleep(self.REQUESTS_TIMEOUT) 
             # Get the page source
             page_content = self.selenium_driver.page_source
+            # Check for common HTTP error messages in the page title or content
+            if "400" in self.selenium_driver.title or "Bad Request" in self.selenium_driver.page_source:
+                print(f"Bad request (400) for {self.ticker}.")
+                return None  # Return None for bad requests
+            elif "401" in self.selenium_driver.title or "Unauthorized" in self.selenium_driver.page_source:
+                print("Unauthorized access (401) for {self.ticker}.")
+                return None  # Return None for unauthorized access
+            elif "403" in self.selenium_driver.title or "Forbidden" in self.selenium_driver.page_source:
+                print("Access forbidden (403) for {self.ticker}.")
+                return None  # Return None for forbidden access
+            elif "404" in self.selenium_driver.title or "Not Found" in self.selenium_driver.page_source:
+                print(f"Page not found (404) for {self.ticker}.") 
+                return None  # Return None for 404 errors
+            elif "408" in self.selenium_driver.title or "Request Timeout" in self.selenium_driver.page_source:
+                print("Request timeout (408) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url) # Retry fetching the page
+            elif "429" in self.selenium_driver.title or "Too Many Requests" in self.selenium_driver.page_source:
+                print("Too many requests (429) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url) # Retry fetching the page
+            elif "500" in self.selenium_driver.title or "Internal Server Error" in self.selenium_driver.page_source:
+                print("Internal server error (500) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+            elif "502" in self.selenium_driver.title or "Bad Gateway" in self.selenium_driver.page_source:
+                print("Bad gateway (502) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+            elif "503" in self.selenium_driver.title or "Service Unavailable" in self.selenium_driver.page_source:
+                print("Service unavailable (503) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+            elif "504" in self.selenium_driver.title or "Gateway Timeout" in self.selenium_driver.page_source:
+                print("Gateway timeout (504) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+            
             print(f"Successfully fetched page for {self.ticker} from {url}")
             return BeautifulSoup(page_content, 'html.parser')
         except Exception as e:
@@ -164,8 +206,10 @@ class YahooFinanceScraper:
 if __name__ == "__main__":
     # Tickers example for testing YahooFinanceScraper
     # You can replace these tickers with any valid stock ticker symbols
+
+    # for testing use "?err=404", "?err=500" with TARGETED_URL without quote , in test change REQUESTS_TIMEOUT"
     tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
-    tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
+    # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
     # tickers_to_scrape = ["META"]
 
     # Initialize the Selenium driver
