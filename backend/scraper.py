@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import  expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
+from data_manager import DataManager 
 
 class YahooFinanceSeleniumDriver:
     """
@@ -208,9 +209,11 @@ if __name__ == "__main__":
     # You can replace these tickers with any valid stock ticker symbols
 
     # for testing use "?err=404", "?err=500" with TARGETED_URL without quote , in test change REQUESTS_TIMEOUT"
-    tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
+    # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
     # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
     # tickers_to_scrape = ["META"]
+    dm = DataManager()
+    tickers_to_scrape = dm.get_specific_values_yaml("backend/tickers.yaml", ["tickers","ticker"])
 
     # Initialize the Selenium driver
     selenium_driver = YahooFinanceSeleniumDriver()
