@@ -7,7 +7,7 @@ class DataManager:
     """
 
 # update for version with path in inti and create function for update path  
-    def __init__(self, base_path="backend"):
+    def __init__(self, base_path:str="backend"):
         """Initialize the DataManager with a base path for YAML files."""
         self.base_path = self._control_path(base_path)
 
@@ -17,7 +17,7 @@ class DataManager:
 
 
 # Functions for work with yaml file
-    def load_yaml(self) -> dict:
+    def load_yaml(self, include_control:str = "tickers") -> dict:
         """
         Load a YAML file and return its content.
         
@@ -26,8 +26,12 @@ class DataManager:
 
         with open(self.base_path, 'r') as file:
             data = yaml.safe_load(file)
-        
+
+        if include_control != "" and include_control not in data:
+            raise KeyError(f"Value '{include_control}' is not found in loaded data.") 
+            
         return data
+        
 
 
     # Update this function  for get all keys ( for dict list of list ["tickers","ticker"])
@@ -37,8 +41,8 @@ class DataManager:
         
         :return: List of keys in the YAML file.
         """
-
         data = self.load_yaml()
+        
         return list(data.keys())
 
     def get_specific_values_yaml(self, keys: list[str]) -> any:
@@ -86,7 +90,7 @@ class DataManager:
 
         :param ticker_data: A dictionary containing the ticker information to add.
         """
-        data = self.load_yaml()
+        data = self.load_yaml("")
 
         if "tickers" not in data:
             data["tickers"] = []
@@ -104,9 +108,6 @@ class DataManager:
         """
         data = self.load_yaml()
 
-        if "tickers" not in data:
-            raise KeyError("No 'tickers' key found in YAML data.")
-
         original_length = len(data["tickers"])
         data["tickers"] = [ticker for ticker in data["tickers"] if ticker.get("name") != ticker_name]
 
@@ -118,12 +119,26 @@ class DataManager:
 
     def update_ticker_yaml(self, ticker_name: str, new_data : str | dict):
         data = self.load_yaml()
-        
-        if "tickers" not in data:
-            raise KeyError("No 'tickers' key found in YAML data.")
+        for ticker in data["tickers"]:
+            if ticker.get("name") == ticker_name:
+                if isinstance(new_data, dict):
+                    for key in new_data:
+                        ticker[key] = new_data[key]
+                elif isinstance(new_data, str):
+                    for value in new_data.split(","):
+                        separed_value = value.split(": ")
+                        if len(separed_value) != 2: 
+                            raise KeyError(f"String \"{value}\" included any or more than one :. ")
+                        key, val = separed_value
+                        if key in ticker:
+                            ticker[key] = val
+                        else:
+                            raise KeyError(f"ticker \"{ticker}\" doesn't include key: {key}")
+                else: 
+                    raise KeyError("data for update are in bad type.")
+            else:
+                ticker_data
 
-        data["tickers"] = [self._update_ticker_information(ticker_data,new_data) if ticker_data.get("name") == ticker_name else ticker_data for ticker_data in data["tickers"] ]
-    
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
 
@@ -157,28 +172,6 @@ class DataManager:
             for item in data:
                 results.extend(self._find_key_recursive(item, key))
         return results
-
-    def _update_ticker_information(self, ticker: dict, new_data : str | dict) -> dict: 
-        if isinstance(new_data, dict):
-            for key in new_data:
-                ticker[key] = new_data[key]
-        elif isinstance(new_data, str):
-            # for variant 'key': value,..
-            for value in new_data.split(","):
-                separed_value = value.split(": ")
-                if len(separed_value) != 2: 
-                    raise KeyError(f"String \"{value}\" included any or more than one :. ")
-                key, val = separed_value
-                if key in ticker:
-                    ticker[key] = val
-                else:
-                    raise KeyError(f"ticker \"{ticker}\" doesn't include key: {key}")
-        # elif isinstance(new_data, (list, tuple, set)):
-        #     data=list(new_data)
-        #     pass
-        else: 
-            raise KeyError("data for update are in bad type.")
-        return ticker
 
 if __name__ == "__main__":
     # Example usage
