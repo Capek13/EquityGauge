@@ -22,7 +22,7 @@ class DataManager:
         if not file_path:
             raise ValueError("Provided path is empty or None.")
         if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"The file '{file_path}' does not exist.")N
+            raise FileNotFoundError(f"The file '{file_path}' does not exist.")
         return file_path
 
     def load_yaml(self, file_path : str) -> dict:
