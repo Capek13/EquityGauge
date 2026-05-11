@@ -11,35 +11,26 @@ class DataManager:
         """Initialize the DataManager with a base path for YAML files."""
         self.base_path = self._control_path(base_path)
 
-    def _control_path(self, file_path: str) -> str:
-        """
-        Validate that the given path is a file.
+    def update_base_path(self, new_base_path: str):
+        """Update the base path for YAML files."""
+        self.base_path = self._control_path(new_base_path)
 
-        :param path: Path to validate.
-        :return: The validated path (unchanged).
-        :raises ValueError: If the path is None or empty.
-        :raises FileNotFoundError: If the path does not point to an existing file.
-        """
-        if not file_path:
-            raise ValueError("Provided path is empty or None.")
-        if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"The file '{file_path}' does not exist.")
-        return file_path
 
+# Functions for work with yaml file
     def load_yaml(self) -> dict:
         """
         Load a YAML file and return its content.
         
         :return: Content of the YAML file as a dictionary.
         """
-        
+
         with open(self.base_path, 'r') as file:
             data = yaml.safe_load(file)
         
         return data
 
 
-# Update this function  for get all keys ( for dict list of list ["tickers","ticker"])
+    # Update this function  for get all keys ( for dict list of list ["tickers","ticker"])
     def list_keys_yaml(self) -> list:
         """
         List all keys in a YAML file.
@@ -89,10 +80,70 @@ class DataManager:
 
         return data
 
-    def update_base_path(self, new_base_path: str):
-        """Update the base path for YAML files."""
-        self.base_path = self._control_path(new_base_path)
+    def add_ticker_yaml(self, ticker_data: dict):
+        """
+        Add a new ticker to the YAML file.
 
+        :param ticker_data: A dictionary containing the ticker information to add.
+        """
+        data = self.load_yaml()
+
+        if "tickers" not in data:
+            data["tickers"] = []
+
+        data["tickers"].append(ticker_data)
+
+        with open(self.base_path, 'w') as file:
+            yaml.safe_dump(data, file)
+
+    def remove_ticker_yaml(self, ticker_name: str):
+        """
+        Remove a ticker from the YAML file by its name.
+
+        :param ticker_name: The name of the ticker to remove.
+        """
+        data = self.load_yaml()
+
+        if "tickers" not in data:
+            raise KeyError("No 'tickers' key found in YAML data.")
+
+        original_length = len(data["tickers"])
+        data["tickers"] = [ticker for ticker in data["tickers"] if ticker.get("name") != ticker_name]
+
+        if len(data["tickers"]) == original_length:
+            raise KeyError(f"Ticker with name '{ticker_name}' not found.")
+
+        with open(self.base_path, 'w') as file:
+            yaml.safe_dump(data, file)
+
+    def update_ticker_yaml(self, ticker_name: str, new_data : str | dict):
+        data = self.load_yaml()
+        
+        if "tickers" not in data:
+            raise KeyError("No 'tickers' key found in YAML data.")
+
+        data["tickers"] = [self._update_ticker_information(ticker_data,new_data) if ticker_data.get("name") == ticker_name else ticker_data for ticker_data in data["tickers"] ]
+    
+        with open(self.base_path, 'w') as file:
+            yaml.safe_dump(data, file)
+
+        
+# Private methods
+    def _control_path(self, file_path: str) -> str:
+        """
+        Validate that the given path is a file.
+
+        :param path: Path to validate.
+        :return: The validated path (unchanged).
+        :raises ValueError: If the path is None or empty.
+        :raises FileNotFoundError: If the path does not point to an existing file.
+        """
+        if not file_path:
+            raise ValueError("Provided path is empty or None.")
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"The file '{file_path}' does not exist.")
+        return file_path
+    
     def _find_key_recursive(self, data, key):
         """Helper function: recursively searches for a key anywhere within the structure."""
         results = []
@@ -107,6 +158,27 @@ class DataManager:
                 results.extend(self._find_key_recursive(item, key))
         return results
 
+    def _update_ticker_information(self, ticker: dict, new_data : str | dict) -> dict: 
+        if isinstance(new_data, dict):
+            for key in new_data:
+                ticker[key] = new_data[key]
+        elif isinstance(new_data, str):
+            # for variant 'key': value,..
+            for value in new_data.split(","):
+                separed_value = value.split(": ")
+                if len(separed_value) != 2: 
+                    raise KeyError(f"String \"{value}\" included any or more than one :. ")
+                key, val = separed_value
+                if key in ticker:
+                    ticker[key] = val
+                else:
+                    raise KeyError(f"ticker \"{ticker}\" doesn't include key: {key}")
+        # elif isinstance(new_data, (list, tuple, set)):
+        #     data=list(new_data)
+        #     pass
+        else: 
+            raise KeyError("data for update are in bad type.")
+        return ticker
 
 if __name__ == "__main__":
     # Example usage
