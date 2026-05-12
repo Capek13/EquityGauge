@@ -32,18 +32,18 @@ class DataManager:
         return data
 
     # Update this function  for get all keys ( for dict list of list ["tickers","ticker"])
-    def list_child_keys_yaml(self, parent_key:str) -> list:
+    def list_child_keys_yaml(self, required_key:str) -> list:
         """
         List all keys in a YAML file.
         
         :return: List of keys in the YAML file.
         """
-        data = self.load_yaml(parent_key)
-        child_data = self._find_key_recursive(data, parent_key)
+        data = self.load_yaml(required_key)
+        child_data = self._find_key_recursive(data, required_key)
 
         return list(child_data.keys())
 
-    def get_specific_values_yaml(self, keys: list[str]) -> any:
+    def get_specific_values_yaml(self, keys: list[str],required_key:str) -> any:
         """
         Traverses a YAML data structure following a sequence of keys.
         Handles any depth and combination of dicts/lists.
@@ -51,10 +51,9 @@ class DataManager:
         :param keys: list of keys to follow (e.g., ["tickers", "ticker"])
         :return: value(s) corresponding to the last key
         """
-        data = self.load_yaml("tickers")
+        data = self.load_yaml(required_key)
 
         for key in keys:
-            next_data = []
 
             if isinstance(data, dict):
                 # If data is a dictionary, go directly to the next level
@@ -62,27 +61,27 @@ class DataManager:
                     raise KeyError(f"Key '{key}' not found in dictionary.")
                 data = data[key]
 
-            elif isinstance(data, list):
-                # If data is a list, search for the key inside each element
-                for item in data:
-                    if key in item:
-                        next_data.append(item[key])
-                    # If nested deeper, search recursively
-                    else:
-                        sub_result = self._find_key_recursive(item, key)
-                        if sub_result:
-                            next_data.extend(sub_result)
+            # elif isinstance(data, list):
+            #     # If data is a list, search for the key inside each element
+            #     for item in data:
+            #         if key in item:
+            #             next_data.append(item[key])
+            #         # If nested deeper, search recursively
+            #         else:
+            #             sub_result = self._find_key_recursive(item, key)
+            #             if sub_result:
+            #                 next_data.extend(sub_result)
 
-                if not next_data:
-                    raise KeyError(f"Key '{key}' not found in list of dictionaries.")
-                data = next_data
+                # if not next_data:
+                #     raise KeyError(f"Key '{key}' not found in list of dictionaries.")
+                # data = next_data
 
             else:
-                raise TypeError(f"Unexpected type {type(data).__name__} while searching for key '{key}'. Function expect only dict or list")
+                raise TypeError(f"Unexpected type {type(data).__name__} while searching for key '{key}'. Function expect only dict")
 
         return data
 
-    def add_ticker_yaml(self, ticker_data: dict):
+    def add_ticker_yaml(self, ticker_data: dict, required_key:str ):
         """
         Add a new ticker to the YAML file.
 
@@ -90,34 +89,34 @@ class DataManager:
         """
         data = self.load_yaml("")
 
-        if "tickers" not in data:
-            data["tickers"] = []
+        if required_key not in data:
+            data[required_key] = []
 
-        data["tickers"].append(ticker_data)
+        data[required_key].append(ticker_data)
 
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
 
-    def remove_ticker_yaml(self, ticker_name: str):
+    def remove_ticker_yaml(self, ticker_name: str,required_key: str):
         """
         Remove a ticker from the YAML file by its name.
 
         :param ticker_name: The name of the ticker to remove.
         """
-        data = self.load_yaml("tickers")
+        data = self.load_yaml(required_key)
 
-        original_length = len(data["tickers"])
-        data["tickers"] = [ticker for ticker in data["tickers"] if ticker.get("name") != ticker_name]
+        original_length = len(data[required_key])
+        data[required_key] = [ticker for ticker in data[required_key] if ticker.get("name") != ticker_name]
 
-        if len(data["tickers"]) == original_length:
+        if len(data[required_key]) == original_length:
             raise KeyError(f"Ticker with name '{ticker_name}' not found.")
 
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
 
-    def update_ticker_yaml(self, ticker_name: str, new_data : str | dict):
-        data = self.load_yaml("tickers")
-        for ticker in data["tickers"]:
+    def update_ticker_yaml(self, ticker_name: str, new_data : str | dict, required_key: str):
+        data = self.load_yaml(required_key)
+        for ticker in data[required_key]:
             if ticker.get("name") == ticker_name:
                 if isinstance(new_data, dict):
                     for key in new_data:
@@ -133,9 +132,7 @@ class DataManager:
                         else:
                             raise KeyError(f"ticker \"{ticker}\" doesn't include key: {key}")
                 else: 
-                    raise KeyError(f"data for update are in bad type. New values can be in data type string or dict. Aktual inserted data are in data type: {type(data).__name__ }")
-            # else:
-            #     ticker_data
+                    raise KeyError(f"data for update are in bad type. New values can be in data type string or dict. Aktual inserted data are in data type: {type(new_data).__name__ }")
 
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
@@ -169,7 +166,7 @@ class DataManager:
                     for ch_key in v:
                         results[ch_key] = v[ch_key]
                 elif isinstance(v, (dict)):
-                    results.extend(self._find_key_recursive(v, key, i+1))
+                    results = {**(self._find_key_recursive(v, key, i+1)), **results}
         else:
             raise KeyError(f"Function _find_key_recursive working only with dict data input. Yout inserted data are in data type: {type(data).__name__ }")
         return results
@@ -177,15 +174,16 @@ class DataManager:
 if __name__ == "__main__":
     # Example usage
     dm = DataManager("backend/tickers.yaml")
+    required_key = "tickers"
     try:
         print(os.getcwd())
-        yaml_data = dm.load_yaml("tickers")
+        yaml_data = dm.load_yaml(required_key)
         print(yaml_data)
         print( "--------------- ------------------ ------------------ ------------------     ------------------ ------------------")
-        keys = dm.list_child_keys_yaml("tickers")
+        keys = dm.list_child_keys_yaml(required_key)
         print(keys)
         print( "--------------- ------------------ ------------------ ------------------     ------------------ ------------------")
-        value = dm.get_specific_values_yaml(["tickers","ticker"])
+        value = dm.get_specific_values_yaml([required_key,"ticker"],required_key)
 
         print(value)
     except Exception as e:
