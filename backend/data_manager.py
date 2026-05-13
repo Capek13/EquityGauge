@@ -43,7 +43,6 @@ class DataManager:
         Traverse the YAML structure following a sequence of keys and return the value at the end.
 
         :param keys: Ordered list of keys to follow (e.g. ["tickers", "sector"]).
-        :param required_key: Top-level key that must exist in the YAML file.
         :return: Value found at the end of the key path.
         :raises KeyError: If any key in the path is not found.
         :raises TypeError: If an unexpected data type is encountered during traversal.
@@ -74,9 +73,9 @@ class DataManager:
     
     def get_ticker(self, required_ticker: str, required_key: str) -> dict | None:
         """
-        Return a single ticker dict by its name.
+        Return a single ticker dict by ticker.
 
-        :param ticker_name: Value of the "name" field to search for.
+        :param required_ticker: Value of the "name" field to search for.
         :param required_key: Key under which the ticker list is stored (e.g. "tickers").
         :return: Ticker dict if found, None otherwise.
         """
@@ -100,8 +99,7 @@ class DataManager:
 
         data[required_key].append(ticker_data)
 
-        with open(self.base_path, 'w') as file:
-            yaml.safe_dump(data, file)
+        self._save_yaml(data)
 
     def remove_ticker_yaml(self, ticker: str, required_key: str):
         """
@@ -119,14 +117,13 @@ class DataManager:
         if len(data[required_key]) == original_length:
             raise KeyError(f"Ticker \'{ticker}\' not found.")
 
-        with open(self.base_path, 'w') as file:
-            yaml.safe_dump(data, file)
+        self._save_yaml(data)
 
-    def update_ticker_yaml(self, ticker_name: str, new_data: str | dict, required_key: str):
+    def update_ticker_yaml(self, required_ticker: str, new_data: str | dict, required_key: str):
         """
         Update fields of an existing ticker in the YAML file.
 
-        :param ticker_name: Value of the "name" field identifying the ticker to update.
+        :param required_ticker: Value of the "name" field identifying the ticker to update.
         :param new_data: New values as a dict, or a string in format 'key: value, key: value'.
         :param required_key: Key under which the ticker list is stored (e.g. "tickers").
         :raises KeyError: If a key in new_data does not exist on the ticker, or new_data type is invalid.
@@ -134,7 +131,7 @@ class DataManager:
         data = self.load_yaml(required_key)
 
         for ticker in data[required_key]:
-            if ticker.get("name") == ticker_name:
+            if ticker.get("ticker") == ticker:
                 if isinstance(new_data, dict):
                     ticker.update(new_data)
                 elif isinstance(new_data, str):
@@ -144,13 +141,12 @@ class DataManager:
                             raise KeyError(f"Invalid format in '{value}'. Expected exactly one ': '.")
                         key, val = parts
                         if key not in ticker:
-                            raise KeyError(f"Ticker '{ticker_name}' has no key '{key}'.")
+                            raise KeyError(f"Ticker '{required_ticker}' has no key '{key}'.")
                         ticker[key] = val
                 else:
                     raise TypeError(f"new_data must be str or dict, got '{type(new_data).__name__}'.")
-
-        with open(self.base_path, 'w') as file:
-            yaml.safe_dump(data, file)
+        self._save_yaml(data)
+        
 
     # Private methods
     def _validate_path(self, file_path: str) -> str:
@@ -168,21 +164,21 @@ class DataManager:
             raise FileNotFoundError(f"File '{file_path}' does not exist.")
         return file_path
 
-    def _find_key_recursive(self, data: dict, key: str, i: int = 0, max_iter: int = 15) -> dict:
+    def _find_key_recursive(self, data: dict, key: str, depth: int = 0, max_iter: int = 15) -> dict:
         """
         Recursively search for key in a nested dict and return its contents as a flat dict.
         If the value under key is a list of dicts, all their keys are merged.
 
         :param data: Dict to search in.
         :param key: Key to find.
-        :param i: Current recursion depth.
+        :param depth: Current recursion depth.
         :param max_iter: Maximum allowed recursion depth.
         :return: Dict of key-value pairs found under the searched key.
         :raises KeyError: If max recursion depth is exceeded or data is not a dict.
         """
         results = {}
 
-        if i >= max_iter:
+        if depth >= max_iter:
             raise KeyError(f"Key '{key}' not found within {max_iter} recursion levels.")
 
         if not isinstance(data, dict):
@@ -197,9 +193,13 @@ class DataManager:
                 elif isinstance(v, dict):
                     results = {**v, **results}
             elif isinstance(v, dict):
-                results = {**results, **(self._find_key_recursive(v, key, i + 1))}
+                results = {**results, **(self._find_key_recursive(v, key, depth + 1))}
 
         return results
+    
+    def _save_yaml(self, data: str):
+        with open(self.base_path, 'w') as file:
+            yaml.safe_dump(data, file)
 
 
 if __name__ == "__main__":

@@ -1,32 +1,28 @@
 # scraper.py
 from bs4 import BeautifulSoup
 import re
-import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import  expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
-from data_manager import DataManager 
+from data_manager import DataManager
+
 
 class YahooFinanceSeleniumDriver:
-    """
-    A class to manage the Selenium WebDriver for Yahoo Finance scraping.
-    This class is used to initialize and manage the Selenium WebDriver instance.
-    """
-    REQUESTS_TIMEOUT = 5  # seconds
+    """Manages the Selenium WebDriver instance for Yahoo Finance scraping."""
+
+    PAGE_LOAD_TIMEOUT = 5  # seconds
     TARGETED_URL = "https://finance.yahoo.com/quote/"
     USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-    def __init__(self):
-        self.driver = self._open_selenium_driver()  # Will hold the Selenium WebDriver instance
-        self.accept_cookies()  # Accept cookies on the Yahoo Finance page
 
-    def _open_selenium_driver(self)->webdriver.Chrome | None:
-        """
-        Initializes the Selenium WebDriver with Chrome options for headless operation.
-        Returns a WebDriver instance or None if an error occurs.
-        """
+    def __init__(self):
+        self.driver = self._init_driver()
+        self.accept_cookies()
+
+    def _init_driver(self) -> webdriver.Chrome | None:
+        """Initializes the Chrome WebDriver with headless options."""
         # Set up Selenium WebDriver with Chrome options
         options = Options()
         options.add_argument("--headless")  # Run in headless mode (no GUI)
@@ -36,29 +32,23 @@ class YahooFinanceSeleniumDriver:
 
         # Initialize the WebDriver 
         return webdriver.Chrome(options=options)
-    
+
     def accept_cookies(self):
-        """
-        Attempts to find and click the "Accept All" cookies button on the Yahoo Finance page.
-        """
+        """Attempts to find and click the 'Accept all' cookies button on Yahoo Finance."""
         try:
             # Open the URL
             self.driver.get(self.TARGETED_URL)
-            accept_button = WebDriverWait(self.driver, self.REQUESTS_TIMEOUT).until(
-                # Wait for the "Accept All" button to be clickable
-                # By.XPATH is used to locate the button by its text, // is for find elements anywhere on page
-                # sometimes is in button tag, sometimes in a div or span -> //button//span[contains(text(), 'Accept All')]
+            accept_button = WebDriverWait(self.driver, self.PAGE_LOAD_TIMEOUT).until(
+                # //button//span catches both <button> and nested <span> variants
                 EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Accept all')]"))
             )
-            accept_button.click()  # Click the "Accept All" button if it appears
+            accept_button.click()
             print(f"Clicked 'Accept all' button for {self.TARGETED_URL}")
         except Exception as e:
-            print(f"No 'Accept all' button found for {self.TARGETED_URL} or it was not clickable: {e}")
-        
+            print(f"No 'Accept all' button found or not clickable: {e}")
+
     def close_driver(self):
-        """
-        Closes the Selenium WebDriver.
-        """
+        """Closes the Selenium WebDriver."""
         if self.driver:
             self.driver.quit()
             print("Selenium WebDriver closed.")
@@ -77,10 +67,12 @@ class YahooFinanceScraper:
         }
     REQUESTS_TIMEOUT = 2  # seconds
     
-    def __init__(self, ticker: str, selenium_driver: YahooFinanceSeleniumDriver ):
+    def __init__(self, ticker: str, selenium_driver: webdriver.Chrome):
         """
-        Inializated the YahooFinanceScraper with a stock ticker.
-        :param ticker: Stock ticker symbol (e.g., 'AAPL' for Apple Inc.)
+        Initializes the YahooFinanceScraper with a stock ticker.
+
+        :param ticker: Stock ticker symbol (e.g. 'AAPL').
+        :param selenium_driver: An active Selenium Chrome WebDriver instance.
         """
         if not ticker:
             raise ValueError("Ticker cannot be empty.")
@@ -88,47 +80,22 @@ class YahooFinanceScraper:
         self.ticker_targeted_url = f"{self.TARGETED_URL}{self.ticker}/" 
         self.soup = None # Will hold the BeautifulSoup object after fetching the page
         self.selenium_driver = selenium_driver  # Will hold the Selenium WebDriver instance; webdriver.Chrome() will be used to initialize it
-        self.connection_attemps = 3  # Number of attempts to connect to the page
+        self.connection_attempts = 3  # Number of attempts to connect to the page
 
-    def _fetch_page_request(self, url: str)-> BeautifulSoup | None:
-        """
-        Fetches the content of a given URL and returns a BeautifulSoup object or None if an error occurs.
-        """
-        try:
-            response = requests.get(url, headers=self.HEADER, timeout=self.REQUESTS_TIMEOUT)
-            response.raise_for_status()  # Raise an exception for HTTP errors (4xx or 5xx)
-            print(f"Successfully fetched page for {self.ticker} from {url}")
-            return BeautifulSoup(response.text, 'html.parser')
-        except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error for {self.ticker} ({url}): {e.response.status_code} - {e.response.reason}")
-            if e.response.status_code == 404:
-                print(f"Ticker {self.ticker} or page not found.")
-            return None
-        except requests.exceptions.ConnectionError as e:
-            print(f"Connection Error for {self.ticker} ({url}): {e}")
-            return None
-        except requests.exceptions.Timeout as e:
-            print(f"Timeout Error for {self.ticker} ({url}): {e}")
-            return None
-        except requests.exceptions.RequestException as e:
-            print(f"An error occurred while fetching {self.ticker} ({url}): {e}")
-            return None
-        except Exception as e:
-            print(f"An unexpected error occurred during page fetch for {self.ticker}: {e}")
-            return None
-        
     def _retry_fetch_page_selenium(self, url: str) -> BeautifulSoup | None:
-        if self.connection_attemps > 0:
-            print(f"Retrying to fetch page for {self.ticker}. Attempts left: {self.connection_attemps}")
-            self.connection_attemps -= 1
-            return self._fetch_page_selenium(url)
-        else:            
-            print(f"Failed to fetch page for {self.ticker} after multiple attempts.")
+        if self.connection_attempts > 0:
+            print(f"Retrying fetch for {self.ticker}. Attempts left: {self.connection_attempts}")
+            self.connection_attempts -= 1
+            return self._fetch_with_selenium(url)
+        print(f"Failed to fetch page for {self.ticker} after multiple attempts.")
         return None
 
-    def _fetch_page_selenium(self, url: str)-> BeautifulSoup | None:
+    def _fetch_with_selenium(self, url: str) -> BeautifulSoup | None:
         """
-        Fetches the content of a given URL using Selenium and returns a BeautifulSoup object or None if an error occurs.
+        Fetches a page using Selenium and returns a BeautifulSoup object, or None on failure.
+
+        :param url: URL to fetch.
+        :return: Parsed BeautifulSoup object or None.
         """
         try:
             # Open the URL
@@ -143,68 +110,65 @@ class YahooFinanceScraper:
                 print(f"Bad request (400) for {self.ticker}.")
                 return None  # Return None for bad requests
             elif "401" in self.selenium_driver.title or "Unauthorized" in self.selenium_driver.page_source:
-                print("Unauthorized access (401) for {self.ticker}.")
+                print(f"Unauthorized access (401) for {self.ticker}.")
                 return None  # Return None for unauthorized access
             elif "403" in self.selenium_driver.title or "Forbidden" in self.selenium_driver.page_source:
-                print("Access forbidden (403) for {self.ticker}.")
-                return None  # Return None for forbidden access
+                print(f"Access forbidden (403) for {self.ticker}.")
+                return None
             elif "404" in self.selenium_driver.title or "Not Found" in self.selenium_driver.page_source:
-                print(f"Page not found (404) for {self.ticker}.") 
-                return None  # Return None for 404 errors
+                print(f"Page not found (404) for {self.ticker}.")
+                return None
             elif "408" in self.selenium_driver.title or "Request Timeout" in self.selenium_driver.page_source:
-                print("Request timeout (408) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url) # Retry fetching the page
+                print(f"Request timeout (408) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             elif "429" in self.selenium_driver.title or "Too Many Requests" in self.selenium_driver.page_source:
-                print("Too many requests (429) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url) # Retry fetching the page
+                print(f"Too many requests (429) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             elif "500" in self.selenium_driver.title or "Internal Server Error" in self.selenium_driver.page_source:
-                print("Internal server error (500) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+                print(f"Internal server error (500) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             elif "502" in self.selenium_driver.title or "Bad Gateway" in self.selenium_driver.page_source:
-                print("Bad gateway (502) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+                print(f"Bad gateway (502) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             elif "503" in self.selenium_driver.title or "Service Unavailable" in self.selenium_driver.page_source:
-                print("Service unavailable (503) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+                print(f"Service unavailable (503) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             elif "504" in self.selenium_driver.title or "Gateway Timeout" in self.selenium_driver.page_source:
-                print("Gateway timeout (504) for {self.ticker}.")
-                return self._retry_fetch_page_selenium(url)  # Retry fetching the page
+                print(f"Gateway timeout (504) for {self.ticker}.")
+                return self._retry_fetch_page_selenium(url)
             
             print(f"Successfully fetched page for {self.ticker} from {url}")
             return BeautifulSoup(page_content, 'html.parser')
         except Exception as e:
-            print(f"An unexpected error occurred during page fetch for {self.ticker}: {e}")
+            print(f"Unexpected error during page fetch for {self.ticker}: {e}")
             return None
-        
+
     def get_pe_ratio(self) -> str | None:
         """
-        Fetches the P/E ratio for the stock ticker.
-        Returns the P/E ratio as a string or None if not found.
+        Fetches and returns the Trailing P/E ratio for the ticker.
+
+        :return: P/E ratio as a string, or None if not found.
         """
         if not self.soup:
             # Fetch the page content if not already done
             print(f"Fetching P/E ratio for {self.ticker} from {self.ticker_targeted_url}")
-            self.soup = self._fetch_page_selenium(self.ticker_targeted_url)
+            self.soup = self._fetch_with_selenium(self.ticker_targeted_url)
             if not self.soup:
                 print(f"Failed to fetch page for {self.ticker}.")
                 return None
         try:
             pe_row_header = self.soup.find('p', string=re.compile(r'Trailing P/E', re.IGNORECASE))
-            print("PE_ROW_HEADER:")
-            print(pe_row_header)
             if pe_row_header:
                 # Find the next sibling <p> element which contains the P/E value
                 pe_value_element = pe_row_header.find_next_sibling('p')
                 if pe_value_element:
-                    return pe_value_element.get_text(strip=True) # strip= True removes leading/trailing whitespace
-
-                print(f"P/E Ratio for {self.ticker} not found on the page using current selectors.")
-                return None
-            
-        except Exception as e:
-            print(f"Error parsing P/E Ratio for {self.ticker}: {e}")
+                    return pe_value_element.get_text(strip=True)
+            print(f"P/E ratio for {self.ticker} not found using current selectors.")
             return None
-    
+        except Exception as e:
+            print(f"Error parsing P/E ratio for {self.ticker}: {e}")
+            return None
+
 
 if __name__ == "__main__":
     # Tickers example for testing YahooFinanceScraper
@@ -214,7 +178,7 @@ if __name__ == "__main__":
     # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
     # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
     tickers_to_scrape = ["META"]
-    dm = DataManager("backend/tickers.yaml")
+    # dm = DataManager("backend/tickers.yaml")
     # tickers_to_scrape = dm.get_specific_values_yaml(["tickers","ticker"])
 
     # Initialize the Selenium driver
