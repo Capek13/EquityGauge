@@ -190,6 +190,8 @@ class YahooFinanceScraper:
                 return None
         try:
             pe_row_header = self.soup.find('p', string=re.compile(r'Trailing P/E', re.IGNORECASE))
+            print("PE_ROW_HEADER:")
+            print(pe_row_header)
             if pe_row_header:
                 # Find the next sibling <p> element which contains the P/E value
                 pe_value_element = pe_row_header.find_next_sibling('p')
@@ -211,9 +213,9 @@ if __name__ == "__main__":
     # for testing use "?err=404", "?err=500" with TARGETED_URL without quote , in test change REQUESTS_TIMEOUT"
     # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META", "XYZ_NON_EXISTENT"]
     # tickers_to_scrape = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMC", "META"]
-    # tickers_to_scrape = ["META"]
-    dm = DataManager()
-    tickers_to_scrape = dm.get_specific_values_yaml("backend/tickers.yaml", ["tickers","ticker"])
+    tickers_to_scrape = ["META"]
+    dm = DataManager("backend/tickers.yaml")
+    # tickers_to_scrape = dm.get_specific_values_yaml(["tickers","ticker"])
 
     # Initialize the Selenium driver
     selenium_driver = YahooFinanceSeleniumDriver()
