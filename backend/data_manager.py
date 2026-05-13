@@ -1,5 +1,6 @@
 import yaml
 import os
+from typing import Any
 
 class DataManager:
     """Manages reading and writing of YAML data files."""
@@ -37,7 +38,7 @@ class DataManager:
         child_data = self._find_key_recursive(data, required_key)
         return list(child_data.keys())
 
-    def get_specific_values_yaml(self, keys: list[str], required_key: str) -> any:
+    def get_specific_values_yaml(self, keys: list[str]) -> Any:
         """
         Traverse the YAML structure following a sequence of keys and return the value at the end.
 
@@ -47,17 +48,43 @@ class DataManager:
         :raises KeyError: If any key in the path is not found.
         :raises TypeError: If an unexpected data type is encountered during traversal.
         """
-        data = self.load_yaml(required_key)
-
+        data = self.load_yaml(keys[0])
+     
         for key in keys:
+            next_data = []
             if isinstance(data, dict):
                 if key not in data:
                     raise KeyError(f"Key '{key}' not found in dictionary.")
                 data = data[key]
+            elif isinstance(data, (list)):
+                for item in data:
+                    if isinstance(item, dict) and key in item:
+                        next_data.append(item[key])
+                    elif isinstance(item, (dict, list)):
+                        sub_result = self._find_key_recursive(item, key)
+                        if sub_result:
+                            next_data.extend(sub_result)
+                if not next_data:
+                    raise KeyError(f"Key '{key}' not found in list of dictionaries.")
+                data = next_data
             else:
                 raise TypeError(f"Unexpected type '{type(data).__name__}' at key '{key}'. Expected dict.")
 
         return data
+    
+    def get_ticker(self, required_ticker: str, required_key: str) -> dict | None:
+        """
+        Return a single ticker dict by its name.
+
+        :param ticker_name: Value of the "name" field to search for.
+        :param required_key: Key under which the ticker list is stored (e.g. "tickers").
+        :return: Ticker dict if found, None otherwise.
+        """
+        data = self.load_yaml(required_key)
+        for ticker in data[required_key]:
+            if ticker.get("ticker") == required_ticker:
+                return ticker
+        return None
 
     def add_ticker_yaml(self, ticker_data: dict, required_key: str):
         """
@@ -66,7 +93,7 @@ class DataManager:
         :param ticker_data: Dictionary with ticker information to add.
         :param required_key: Key under which the ticker list is stored (e.g. "tickers").
         """
-        data = self.load_yaml()
+        data = self.load_yaml(required_key)
 
         if required_key not in data:
             data[required_key] = []
@@ -76,7 +103,7 @@ class DataManager:
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
 
-    def remove_ticker_yaml(self, ticker_name: str, required_key: str):
+    def remove_ticker_yaml(self, ticker: str, required_key: str):
         """
         Remove a ticker by name from the YAML file.
 
@@ -87,10 +114,10 @@ class DataManager:
         data = self.load_yaml(required_key)
 
         original_length = len(data[required_key])
-        data[required_key] = [t for t in data[required_key] if t.get("name") != ticker_name]
+        data[required_key] = [t for t in data[required_key] if t.get("ticker") != ticker]
 
         if len(data[required_key]) == original_length:
-            raise KeyError(f"Ticker '{ticker_name}' not found.")
+            raise KeyError(f"Ticker \'{ticker}\' not found.")
 
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
@@ -125,8 +152,7 @@ class DataManager:
         with open(self.base_path, 'w') as file:
             yaml.safe_dump(data, file)
 
-
-# Private methods
+    # Private methods
     def _validate_path(self, file_path: str) -> str:
         """
         Check that the given path points to an existing file.
@@ -180,14 +206,16 @@ if __name__ == "__main__":
     dm = DataManager("backend/tickers.yaml")
     required_key = "tickers"
     try:
-        print(os.getcwd())
+        # print(os.getcwd())
         yaml_data = dm.load_yaml(required_key)
         print(yaml_data)
         print("-" * 80)
         keys = dm.list_child_keys_yaml(required_key)
         print(keys)
         print("-" * 80)
-        value = dm.get_specific_values_yaml([required_key, "ticker"], required_key)
+        value = dm.get_specific_values_yaml([required_key, "ticker"])
+        print(value)
+        value = dm.get_ticker("AAPL",required_key)
         print(value)
     except Exception as e:
         print(f"An error occurred: {e}")
