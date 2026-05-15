@@ -158,6 +158,8 @@ class DataManager:
         :raises ValueError: If the path is empty or None.
         :raises FileNotFoundError: If no file exists at the path.
         """
+        if not isinstance(file_path, str):
+            raise TypeError(f"Path must be a string, got '{type(file_path).__name__}'.")
         if not file_path:
             raise ValueError("Path is empty or None.")
         if not os.path.isfile(file_path):
