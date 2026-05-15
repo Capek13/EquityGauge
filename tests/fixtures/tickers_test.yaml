@@ -1,0 +1,5 @@
+tickers:
+- name: Apple Inc.
+  sector: Technology
+  ticker: AAPL
+- AAPL
