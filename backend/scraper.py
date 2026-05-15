@@ -7,7 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
-from data_manager import DataManager
+from backend.data_manager import DataManager
 
 
 class YahooFinanceSeleniumDriver:
@@ -99,7 +99,7 @@ class YahooFinanceScraper:
         """
         try:
             # Open the URL
-            self.selenium_driver.get(self.ticker_targeted_url)
+            self.selenium_driver.get(url)
 
             # Wait for the page to load completely
             time.sleep(self.REQUESTS_TIMEOUT) 
