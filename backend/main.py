@@ -52,6 +52,11 @@ async def get_companies():
 async def get_pe_ratio(ticker, request: Request):
     scraper = YahooFinanceScraper(ticker,request.app.state.driver.driver)
     pe = scraper.get_pe_ratio()
+    if pe == "null":
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"pe": pe}
+        )
     return {"pe": pe}
 
 @app.post("/companies",status_code=status.HTTP_201_CREATED)
@@ -75,7 +80,10 @@ async def delete_ticker(ticker: str, request: Request):
         )
     dm.remove_ticker_yaml(ticker, "tickers")
     if dm.get_ticker(ticker, "tickers") is not None:
-        return {"message": "FAIL - data wasn't removed"}
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "FAIL - data wasn't removed"}
+        )
     return {"message": f"Ticker '{ticker}' was removed successfully."}
     
 
