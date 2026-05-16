@@ -2,8 +2,8 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from scraper import YahooFinanceSeleniumDriver,YahooFinanceScraper
-from data_manager import DataManager
+from backend.scraper import YahooFinanceSeleniumDriver,YahooFinanceScraper
+from backend.data_manager import DataManager
 from pydantic import BaseModel
 
 class TickerRequest(BaseModel):
