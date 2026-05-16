@@ -201,3 +201,7 @@ cython_debug/
 # Temporary files created by text editors
 #   These files are often created by text editors to store unsaved changes or backups.
 tempCodeRunnerFile.py
+
+# Frontend agent generated output (keep dir via .gitkeep, ignore generated files)
+agents/frontend-agent/output/*
+!agents/frontend-agent/output/.gitkeep
