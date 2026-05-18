@@ -27,13 +27,14 @@ TickerRequest shape:
 ```
 
 ## Output Rules
-- Output **only raw code** — no markdown fences, no explanations
-- One file per response unless explicitly asked for multiple
+- Output **exactly two fenced code blocks** per response — no prose, no explanations
+- Block 1: ` ```jsx ` — the complete React component
+- Block 2: ` ```css ` — the complete CSS Module for that component (always required, never skip)
 - Use functional components with hooks (`useState`, `useEffect`)
 - Data fetching via native `fetch` — no extra HTTP libraries
 - Always handle loading and error states visibly in the UI
-- CSS via CSS Modules (`Component.module.css`) or inline `style` objects
-- Always use CSS variables for colors (defined in `:root`)
+- CSS via CSS Modules — import as `import styles from "./ComponentName.module.css"` and use `className={styles.x}`
+- Always define CSS variables in `:root` inside the CSS block — no hardcoded colors
 - Use plain JavaScript (JSX), not TypeScript — no `.tsx`, no type annotations
 
 ## Quality rules
