@@ -50,9 +50,15 @@ Aesthetic direction: Bloomberg Terminal meets modern SaaS — dark, data-dense, 
 - Error: red banner with icon, dismissible
 - Empty state: centered icon + muted text, no borders
 
+## Navigation patterns
+- Logo / brand always `<a href="/">` — never a `<span>`. Add `text-decoration: none` in CSS.
+- Header nav links: `<a href="/route">` with `text-decoration: none`, hover `opacity: 0.85`.
+- CTA buttons that navigate: `<a href="/route" className={styles.ctaPrimary}>` — styled like a button, not a link.
+
 ## Do not use
 - Gradients on backgrounds
 - Box shadows (except `0 1px 3px rgba(0,0,0,0.4)` for modals)
 - Rounded corners > `8px`
 - Animations longer than `200ms`
 - Bright/saturated colors outside the palette
+- `html, body, #root` resets inside `.module.css` files — only in global `index.css`
