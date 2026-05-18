@@ -25,26 +25,10 @@ function SkeletonRow() {
     <tr className={styles.skeletonRow} aria-hidden="true">
       {COLUMNS.map((_, i) => (
         <td key={i} className={styles.skeletonCell}>
-          <span className={styles.shimmer} />
+          <span className={styles.skeletonBlock} />
         </td>
       ))}
     </tr>
-  );
-}
-
-function ErrorBanner({ message, onDismiss }) {
-  return (
-    <div className={styles.errorBanner} role="alert">
-      <span className={styles.errorIcon} aria-hidden="true">⚠</span>
-      <span className={styles.errorMessage}>{message}</span>
-      <button
-        className={styles.errorDismiss}
-        onClick={onDismiss}
-        aria-label="Dismiss error"
-      >
-        ✕
-      </button>
-    </div>
   );
 }
 
@@ -53,6 +37,7 @@ export default function WatchlistTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deletingTickers, setDeletingTickers] = useState(new Set());
+  const [deleteErrors, setDeleteErrors] = useState({});
 
   const fetchPe = useCallback(async (ticker) => {
     try {
@@ -82,23 +67,19 @@ export default function WatchlistTable() {
         pe: undefined,
       }));
       setRows(initialRows);
-      setLoading(false);
 
-      const peResults = await Promise.all(
-        tickers.map(async (ticker) => {
-          const pe = await fetchPe(ticker);
-          return { ticker, pe };
-        })
-      );
-
-      setRows((prev) =>
-        prev.map((row) => {
-          const found = peResults.find((r) => r.ticker === row.ticker);
-          return found ? { ...row, pe: found.pe } : row;
-        })
+      const peResults = await Promise.all(tickers.map((t) => fetchPe(t)));
+      setRows(
+        tickers.map((ticker, i) => ({
+          ticker,
+          name: null,
+          sector: null,
+          pe: peResults[i],
+        }))
       );
     } catch (e) {
-      setError(e.message || "Failed to load watchlist");
+      setError(e.message || "Failed to load watchlist.");
+    } finally {
       setLoading(false);
     }
   }, [fetchPe]);
@@ -109,14 +90,25 @@ export default function WatchlistTable() {
 
   const handleDelete = async (ticker) => {
     setDeletingTickers((prev) => new Set(prev).add(ticker));
+    setDeleteErrors((prev) => {
+      const next = { ...prev };
+      delete next[ticker];
+      return next;
+    });
     try {
       const res = await fetch(`${API_BASE}/companies/${ticker}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setRows((prev) => prev.filter((row) => row.ticker !== ticker));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${res.status}`);
+      }
+      setRows((prev) => prev.filter((r) => r.ticker !== ticker));
     } catch (e) {
-      setError(`Failed to delete ${ticker}: ${e.message}`);
+      setDeleteErrors((prev) => ({
+        ...prev,
+        [ticker]: e.message || "Delete failed.",
+      }));
     } finally {
       setDeletingTickers((prev) => {
         const next = new Set(prev);
@@ -126,93 +118,111 @@ export default function WatchlistTable() {
     }
   };
 
-  const skeletonCount = 5;
-
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <h2 className={styles.title}>Watchlist</h2>
-        <span className={styles.count}>
-          {!loading && `${rows.length} ${rows.length === 1 ? "company" : "companies"}`}
-        </span>
+        {!loading && !error && (
+          <span className={styles.count} aria-live="polite">
+            {rows.length} {rows.length === 1 ? "company" : "companies"}
+          </span>
+        )}
       </div>
 
       {error && (
-        <ErrorBanner message={error} onDismiss={() => setError(null)} />
+        <div className={styles.errorBanner} role="alert">
+          <span className={styles.errorIcon} aria-hidden="true">⚠</span>
+          <span className={styles.errorMessage}>{error}</span>
+          <button
+            className={styles.errorDismiss}
+            onClick={() => setError(null)}
+            aria-label="Dismiss error"
+          >
+            ✕
+          </button>
+        </div>
       )}
 
       <div className={styles.tableWrapper}>
-        <table className={styles.table} aria-label="Watchlist table">
+        <table className={styles.table} aria-label="Equity watchlist">
           <thead>
             <tr>
-              {COLUMNS.map((col) => (
-                <th key={col} className={styles.th} scope="col">
+              {COLUMNS.map((col, i) => (
+                <th
+                  key={i}
+                  className={styles.th}
+                  scope="col"
+                  aria-label={col || "Actions"}
+                >
                   {col}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading
-              ? Array.from({ length: skeletonCount }).map((_, i) => (
-                  <SkeletonRow key={i} />
-                ))
-              : rows.length === 0
-              ? (
-                <tr>
-                  <td colSpan={COLUMNS.length} className={styles.emptyState}>
-                    <span className={styles.emptyIcon} aria-hidden="true">📋</span>
-                    <span className={styles.emptyText}>No companies in watchlist</span>
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonRow key={i} />
+              ))
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={COLUMNS.length} className={styles.emptyState}>
+                  <span className={styles.emptyIcon} aria-hidden="true">📋</span>
+                  <span className={styles.emptyText}>No companies in watchlist</span>
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.ticker} className={styles.row}>
+                  <td className={styles.tdTicker}>
+                    <span className={styles.ticker}>{row.ticker}</span>
+                  </td>
+                  <td className={styles.td}>
+                    <span className={styles.name}>
+                      {row.name ?? (
+                        <span className={styles.naText}>—</span>
+                      )}
+                    </span>
+                  </td>
+                  <td className={styles.td}>
+                    <span className={row.sector ? styles.sector : styles.naText}>
+                      {row.sector ?? "—"}
+                    </span>
+                  </td>
+                  <td className={styles.tdPe}>
+                    <span
+                      className={`${styles.peValue} ${getPeClass(row.pe)}`}
+                      aria-label={`P/E ratio: ${formatPe(row.pe)}`}
+                    >
+                      {row.pe === undefined ? (
+                        <span className={styles.peLoading} aria-hidden="true" />
+                      ) : (
+                        formatPe(row.pe)
+                      )}
+                    </span>
+                  </td>
+                  <td className={styles.tdAction}>
+                    {deleteErrors[row.ticker] && (
+                      <span className={styles.rowError} role="alert">
+                        {deleteErrors[row.ticker]}
+                      </span>
+                    )}
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDelete(row.ticker)}
+                      disabled={deletingTickers.has(row.ticker)}
+                      aria-label={`Remove ${row.ticker} from watchlist`}
+                    >
+                      {deletingTickers.has(row.ticker) ? (
+                        <span className={styles.spinner} aria-hidden="true" />
+                      ) : (
+                        "Remove"
+                      )}
+                    </button>
                   </td>
                 </tr>
-              )
-              : rows.map((row) => {
-                  const isDeleting = deletingTickers.has(row.ticker);
-                  const peLoading = row.pe === undefined;
-                  return (
-                    <tr
-                      key={row.ticker}
-                      className={`${styles.row} ${isDeleting ? styles.rowDeleting : ""}`}
-                    >
-                      <td className={styles.tdTicker}>
-                        <span className={styles.ticker}>{row.ticker}</span>
-                      </td>
-                      <td className={styles.td}>
-                        {row.name ?? (
-                          <span className={styles.muted}>—</span>
-                        )}
-                      </td>
-                      <td className={styles.td}>
-                        {row.sector ?? (
-                          <span className={styles.muted}>—</span>
-                        )}
-                      </td>
-                      <td className={styles.td}>
-                        {peLoading ? (
-                          <span className={styles.shimmerInline} aria-label="Loading P/E" />
-                        ) : (
-                          <span className={`${styles.pe} ${getPeClass(row.pe)}`}>
-                            {formatPe(row.pe)}
-                          </span>
-                        )}
-                      </td>
-                      <td className={styles.tdAction}>
-                        <button
-                          className={styles.deleteBtn}
-                          onClick={() => handleDelete(row.ticker)}
-                          disabled={isDeleting}
-                          aria-label={`Delete ${row.ticker}`}
-                        >
-                          {isDeleting ? (
-                            <span className={styles.deletingSpinner} aria-hidden="true" />
-                          ) : (
-                            "Delete"
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./AddCompanyForm.module.css";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
@@ -18,6 +18,7 @@ export default function AddCompanyForm({ onAdded }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -31,7 +32,7 @@ export default function AddCompanyForm({ onAdded }) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setData(null);
+    setSuccessMessage(null);
 
     try {
       const res = await fetch(`${API_BASE}/companies`, {
@@ -40,27 +41,73 @@ export default function AddCompanyForm({ onAdded }) {
         body: JSON.stringify(form),
       });
 
-      const json = await res.json();
+      const responseData = await res.json();
+      setData(responseData);
 
       if (res.status === 201) {
-        setData(json.message ?? "Company added successfully.");
+        setSuccessMessage(
+          `${form.ticker.toUpperCase()} was successfully added to your watchlist.`
+        );
         setForm(INITIAL_FORM);
         onAdded?.();
       } else if (res.status === 409) {
-        setError(json.message ?? "Ticker already exists.");
+        setError(
+          responseData?.message ??
+            `${form.ticker.toUpperCase()} already exists in the system.`
+        );
       } else {
-        setError(json.message ?? `Unexpected error (HTTP ${res.status}).`);
+        setError(responseData?.message ?? `Unexpected error (HTTP ${res.status}).`);
       }
     } catch {
-      setError("Network error — could not reach the server.");
+      setError("Network error — could not reach the server. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDismissError = () => setError(null);
+  const handleDismissSuccess = () => setSuccessMessage(null);
+
   return (
     <div className={styles.wrapper}>
-      <h2 className={styles.heading}>Add Company</h2>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Add Company</h2>
+        <p className={styles.subtitle}>
+          Track a new equity by adding its ticker and metadata below.
+        </p>
+      </div>
+
+      {successMessage && (
+        <div className={styles.banner} role="status" aria-live="polite">
+          <div className={styles.bannerSuccess}>
+            <span className={styles.bannerIcon} aria-hidden="true">✓</span>
+            <span className={styles.bannerText}>{successMessage}</span>
+            <button
+              className={styles.bannerDismiss}
+              onClick={handleDismissSuccess}
+              aria-label="Dismiss success message"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className={styles.banner} role="alert" aria-live="assertive">
+          <div className={styles.bannerError}>
+            <span className={styles.bannerIcon} aria-hidden="true">⚠</span>
+            <span className={styles.bannerText}>{error}</span>
+            <button
+              className={styles.bannerDismiss}
+              onClick={handleDismissError}
+              aria-label="Dismiss error message"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <form
         className={styles.form}
@@ -68,157 +115,132 @@ export default function AddCompanyForm({ onAdded }) {
         noValidate
         aria-label="Add company form"
       >
-        {data && (
-          <div
-            className={styles.banner}
-            data-variant="success"
-            role="status"
-            aria-live="polite"
-          >
-            <span className={styles.bannerIcon} aria-hidden="true">✓</span>
-            {data}
-          </div>
-        )}
+        <fieldset className={styles.fieldset} disabled={loading}>
+          <legend className={styles.legend}>Required fields</legend>
 
-        {error && (
-          <div
-            className={styles.banner}
-            data-variant="error"
-            role="alert"
-            aria-live="assertive"
-          >
-            <span className={styles.bannerIcon} aria-hidden="true">✕</span>
-            {error}
-            <button
-              type="button"
-              className={styles.bannerDismiss}
-              aria-label="Dismiss error"
-              onClick={() => setError(null)}
-            >
-              ×
-            </button>
-          </div>
-        )}
+          <div className={styles.fieldGroup}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="ticker">
+                Ticker <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                className={styles.input}
+                id="ticker"
+                name="ticker"
+                type="text"
+                value={form.ticker}
+                onChange={handleChange}
+                placeholder="e.g. AAPL"
+                required
+                autoComplete="off"
+                spellCheck={false}
+                aria-required="true"
+              />
+            </div>
 
-        <div className={styles.grid}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="ticker">
-              Ticker <span className={styles.required} aria-hidden="true">*</span>
-            </label>
-            <input
-              className={styles.input}
-              id="ticker"
-              name="ticker"
-              value={form.ticker}
-              onChange={handleChange}
-              placeholder="e.g. AAPL"
-              required
-              autoComplete="off"
-              spellCheck="false"
-            />
-          </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="name">
+                Company Name <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                className={styles.input}
+                id="name"
+                name="name"
+                type="text"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="e.g. Apple Inc."
+                required
+                aria-required="true"
+              />
+            </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="name">
-              Company Name <span className={styles.required} aria-hidden="true">*</span>
-            </label>
-            <input
-              className={styles.input}
-              id="name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="e.g. Apple Inc."
-              required
-              autoComplete="off"
-            />
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="currency">
+                Currency <span className={styles.required} aria-hidden="true">*</span>
+              </label>
+              <input
+                className={styles.input}
+                id="currency"
+                name="currency"
+                type="text"
+                value={form.currency}
+                onChange={handleChange}
+                placeholder="e.g. USD"
+                required
+                maxLength={3}
+                aria-required="true"
+              />
+            </div>
           </div>
+        </fieldset>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="currency">
-              Currency <span className={styles.required} aria-hidden="true">*</span>
-            </label>
-            <input
-              className={styles.input}
-              id="currency"
-              name="currency"
-              value={form.currency}
-              onChange={handleChange}
-              placeholder="e.g. USD"
-              required
-              autoComplete="off"
-              spellCheck="false"
-            />
+        <fieldset className={styles.fieldset} disabled={loading}>
+          <legend className={styles.legend}>Optional fields</legend>
+
+          <div className={styles.fieldGroup}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="exchange">
+                Exchange
+              </label>
+              <input
+                className={styles.input}
+                id="exchange"
+                name="exchange"
+                type="text"
+                value={form.exchange}
+                onChange={handleChange}
+                placeholder="e.g. NASDAQ"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="sector">
+                Sector
+              </label>
+              <input
+                className={styles.input}
+                id="sector"
+                name="sector"
+                type="text"
+                value={form.sector}
+                onChange={handleChange}
+                placeholder="e.g. Technology"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="industry">
+                Industry
+              </label>
+              <input
+                className={styles.input}
+                id="industry"
+                name="industry"
+                type="text"
+                value={form.industry}
+                onChange={handleChange}
+                placeholder="e.g. Consumer Electronics"
+              />
+            </div>
           </div>
+        </fieldset>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="exchange">
-              Exchange
-              <span className={styles.optional}> — optional</span>
-            </label>
-            <input
-              className={styles.input}
-              id="exchange"
-              name="exchange"
-              value={form.exchange}
-              onChange={handleChange}
-              placeholder="e.g. NASDAQ"
-              autoComplete="off"
-              spellCheck="false"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="sector">
-              Sector
-              <span className={styles.optional}> — optional</span>
-            </label>
-            <input
-              className={styles.input}
-              id="sector"
-              name="sector"
-              value={form.sector}
-              onChange={handleChange}
-              placeholder="e.g. Technology"
-              autoComplete="off"
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="industry">
-              Industry
-              <span className={styles.optional}> — optional</span>
-            </label>
-            <input
-              className={styles.input}
-              id="industry"
-              name="industry"
-              value={form.industry}
-              onChange={handleChange}
-              placeholder="e.g. Consumer Electronics"
-              autoComplete="off"
-            />
-          </div>
-        </div>
-
-        <div className={styles.checkboxRow}>
-          <input
-            className={styles.checkbox}
-            type="checkbox"
-            id="watchlist"
-            name="watchlist"
-            checked={form.watchlist}
-            onChange={handleChange}
-          />
+        <div className={styles.formFooter}>
           <label className={styles.checkboxLabel} htmlFor="watchlist">
-            Add to watchlist
+            <input
+              className={styles.checkbox}
+              id="watchlist"
+              name="watchlist"
+              type="checkbox"
+              checked={form.watchlist}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <span className={styles.checkboxCustom} aria-hidden="true" />
+            <span className={styles.checkboxText}>Add to watchlist</span>
           </label>
-        </div>
 
-        <div className={styles.footer}>
-          <p className={styles.requiredNote}>
-            <span className={styles.required}>*</span> Required fields
-          </p>
           <button
             className={styles.submitButton}
             type="submit"
@@ -226,10 +248,10 @@ export default function AddCompanyForm({ onAdded }) {
             aria-busy={loading}
           >
             {loading ? (
-              <>
+              <span className={styles.buttonLoading}>
                 <span className={styles.spinner} aria-hidden="true" />
                 Adding…
-              </>
+              </span>
             ) : (
               "Add Company"
             )}
