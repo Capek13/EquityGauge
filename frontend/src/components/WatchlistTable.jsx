@@ -39,18 +39,6 @@ export default function WatchlistTable() {
   const [deletingTickers, setDeletingTickers] = useState(new Set());
   const [deleteErrors, setDeleteErrors] = useState({});
 
-  const fetchPe = useCallback(async (ticker) => {
-    try {
-      const res = await fetch(`${API_BASE}/companies/${ticker}/pe`);
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.pe ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
-
   const loadWatchlist = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -58,31 +46,36 @@ export default function WatchlistTable() {
       const res = await fetch(`${API_BASE}/companies`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const tickers = data.companies ?? [];
+      const companies = data.companies ?? [];
 
-      const initialRows = tickers.map((ticker) => ({
-        ticker,
-        name: null,
-        sector: null,
+      // Show table immediately with company info, P/E loading per row
+      setRows(companies.map((c) => ({
+        ticker: c.ticker,
+        name: c.name ?? null,
+        sector: c.sector ?? null,
         pe: undefined,
-      }));
-      setRows(initialRows);
+      })));
+      setLoading(false);
 
-      const peResults = await Promise.all(tickers.map((t) => fetchPe(t)));
-      setRows(
-        tickers.map((ticker, i) => ({
-          ticker,
-          name: null,
-          sector: null,
-          pe: peResults[i],
-        }))
-      );
+      // Fetch P/E ratios one by one and update rows as they arrive
+      companies.forEach(async (c) => {
+        try {
+          const peRes = await fetch(`${API_BASE}/companies/${c.ticker}/pe`);
+          const pe = peRes.status === 404 ? null : peRes.ok ? (await peRes.json()).pe ?? null : null;
+          setRows((prev) =>
+            prev.map((r) => r.ticker === c.ticker ? { ...r, pe } : r)
+          );
+        } catch {
+          setRows((prev) =>
+            prev.map((r) => r.ticker === c.ticker ? { ...r, pe: null } : r)
+          );
+        }
+      });
     } catch (e) {
       setError(e.message || "Failed to load watchlist.");
-    } finally {
       setLoading(false);
     }
-  }, [fetchPe]);
+  }, []);
 
   useEffect(() => {
     loadWatchlist();
