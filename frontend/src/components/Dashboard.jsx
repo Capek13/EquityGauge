@@ -26,44 +26,34 @@ export default function Dashboard() {
     setRefreshKey((prev) => prev + 1);
   };
 
-  if (loading) {
-    return (
-      <div className={styles.loadingWrapper} aria-label="Loading dashboard">
-        <div className={styles.skeleton} aria-hidden="true" />
-        <div className={styles.skeleton} aria-hidden="true" />
-        <div className={styles.skeleton} aria-hidden="true" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.errorBanner} role="alert">
-        <span className={styles.errorIcon} aria-hidden="true">⚠</span>
-        <span>Failed to load dashboard — {error}</span>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.root}>
       {/* ── Header ── */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brand}>
-            <span className={styles.logo} aria-label="EquityGauge logo">
+            <a href="/" className={styles.logo} aria-label="EquityGauge — go to home">
               <span className={styles.logoMark}>▲</span>
               EquityGauge
-            </span>
+            </a>
             <span className={styles.subtitle}>P/E Ratio Tracker</span>
           </div>
           <div className={styles.headerMeta}>
-            <span className={styles.companyCount}>
-              {data?.companies?.length ?? 0} companies tracked
-            </span>
+            {!loading && !error && (
+              <span className={styles.companyCount}>
+                {data?.companies?.length ?? 0} companies tracked
+              </span>
+            )}
           </div>
         </div>
       </header>
+
+      {error && (
+        <div className={styles.errorBanner} role="alert">
+          <span className={styles.errorIcon} aria-hidden="true">⚠</span>
+          <span>Backend nedostupný — {error}</span>
+        </div>
+      )}
 
       {/* ── Body ── */}
       <div className={styles.dashboard}>

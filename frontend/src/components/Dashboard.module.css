@@ -82,6 +82,8 @@ body,
   font-weight: 600;
   color: var(--color-text);
   letter-spacing: -0.3px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .logoMark {

@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from backend.scraper import YahooFinanceSeleniumDriver,YahooFinanceScraper
 from backend.data_manager import DataManager
 from pydantic import BaseModel
@@ -33,6 +34,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Define a path operation (or "route")
 @app.get("/")
 async def read_root():
@@ -45,8 +53,8 @@ async def read_root():
 
 @app.get("/companies")
 async def get_companies():
-    companies = dm.get_specific_values_yaml(["tickers", "ticker"])
-    return {"companies": companies}
+    data = dm.load_yaml("tickers")
+    return {"companies": data.get("tickers", [])}
 
 @app.get("/companies/{ticker}/pe")
 async def get_pe_ratio(ticker, request: Request):
