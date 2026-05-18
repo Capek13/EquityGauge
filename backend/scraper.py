@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -23,14 +24,19 @@ class YahooFinanceSeleniumDriver:
 
     def _init_driver(self) -> webdriver.Chrome | None:
         """Initializes the Chrome WebDriver with headless options."""
-        # Set up Selenium WebDriver with Chrome options
         options = Options()
-        options.add_argument("--headless")  # Run in headless mode (no GUI)
+        options.add_argument("--headless")
+        options.add_argument("--no-sandbox")           # required in Docker
+        options.add_argument("--disable-dev-shm-usage") # required in Docker
         options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        options.add_argument(f"user-agent={self.USER_AGENT}") # Set a user agent to mimic a real browser
+        options.add_argument(f"user-agent={self.USER_AGENT}")
 
-        # Initialize the WebDriver 
+        import os
+        if os.path.exists("/usr/bin/chromium"):
+            options.binary_location = "/usr/bin/chromium"
+            service = Service("/usr/bin/chromedriver")
+            return webdriver.Chrome(service=service, options=options)
+
         return webdriver.Chrome(options=options)
 
     def accept_cookies(self):
