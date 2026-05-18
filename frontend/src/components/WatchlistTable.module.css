@@ -1,0 +1,363 @@
+:root {
+  --color-bg:         #0d1117;
+  --color-surface:    #161b22;
+  --color-border:     #30363d;
+  --color-text:       #e6edf3;
+  --color-text-muted: #8b949e;
+  --color-accent:     #58a6ff;
+  --color-success:    #3fb950;
+  --color-warning:    #d29922;
+  --color-danger:     #f85149;
+  --color-brand:      #1f6feb;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+
+.wrapper {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Error banner ────────────────────────────────────────── */
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid var(--color-danger);
+  border-radius: 6px;
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.errorIcon {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.errorMessage {
+  flex: 1;
+}
+
+.errorDismiss {
+  background: transparent;
+  border: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 150ms;
+}
+
+.errorDismiss:hover {
+  background: rgba(248, 81, 73, 0.15);
+}
+
+/* ── Table wrapper ───────────────────────────────────────── */
+
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+/* ── Table head ──────────────────────────────────────────── */
+
+.th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 16px;
+  height: 40px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.th:last-child {
+  text-align: right;
+}
+
+/* ── Table rows ──────────────────────────────────────────── */
+
+.row {
+  height: 48px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 120ms;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: var(--color-border);
+}
+
+.td,
+.tdTicker,
+.tdPe,
+.tdAction {
+  padding: 0 16px;
+  vertical-align: middle;
+}
+
+.tdTicker {
+  width: 110px;
+}
+
+.tdPe {
+  width: 120px;
+  text-align: right;
+}
+
+.tdAction {
+  width: 140px;
+  text-align: right;
+}
+
+/* ── Cell content ────────────────────────────────────────── */
+
+.ticker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+  letter-spacing: 0.3px;
+}
+
+.name {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.sector {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.naText {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* ── P/E value coloring ──────────────────────────────────── */
+
+.peValue {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.peSuccess {
+  color: var(--color-success);
+}
+
+.peNeutral {
+  color: var(--color-text);
+}
+
+.peWarning {
+  color: var(--color-warning);
+}
+
+.peMuted {
+  color: var(--color-text-muted);
+}
+
+/* ── P/E inline skeleton ─────────────────────────────────── */
+
+.peLoading {
+  display: inline-block;
+  width: 48px;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  vertical-align: middle;
+}
+
+/* ── Delete button ───────────────────────────────────────── */
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: 28px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--color-danger);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  background: rgba(248, 81, 73, 0.08);
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Row-level delete error ──────────────────────────────── */
+
+.rowError {
+  font-size: 11px;
+  color: var(--color-danger);
+  margin-right: 8px;
+}
+
+/* ── Spinner (delete in-progress) ───────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(248, 81, 73, 0.25);
+  border-top-color: var(--color-danger);
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+}
+
+/* ── Skeleton rows ───────────────────────────────────────── */
+
+.skeletonRow {
+  height: 48px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.skeletonCell {
+  padding: 0 16px;
+  vertical-align: middle;
+}
+
+.skeletonBlock {
+  display: block;
+  height: 12px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-surface) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.skeletonRow:nth-child(1) .skeletonBlock { width: 55%; }
+.skeletonRow:nth-child(2) .skeletonBlock { width: 75%; }
+.skeletonRow:nth-child(3) .skeletonBlock { width: 65%; }
+.skeletonRow:nth-child(4) .skeletonBlock { width: 80%; }
+.skeletonRow:nth-child(5) .skeletonBlock { width: 50%; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+
+.emptyState {
+  padding: 48px 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.emptyIcon {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.emptyText {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .wrapper {
+    padding: 16px 8px;
+  }
+
+  .th,
+  .td,
+  .tdTicker,
+  .tdPe,
+  .tdAction {
+    padding: 0 10px;
+  }
+
+  .tdAction {
+    width: auto;
+  }
+
+  .deleteBtn {
+    min-width: unset;
+    padding: 0 8px;
+  }
+}

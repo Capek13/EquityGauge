@@ -22,50 +22,69 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleAdded = () => setRefreshKey((k) => k + 1);
+  const handleAdded = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
-  if (loading) return <div className={styles.skeleton} aria-label="Loading" />;
-  if (error) return <p className={styles.error} role="alert">Error: {error}</p>;
+  if (loading) {
+    return (
+      <div className={styles.loadingWrapper} aria-label="Loading dashboard">
+        <div className={styles.skeleton} aria-hidden="true" />
+        <div className={styles.skeleton} aria-hidden="true" />
+        <div className={styles.skeleton} aria-hidden="true" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorBanner} role="alert">
+        <span className={styles.errorIcon} aria-hidden="true">⚠</span>
+        <span>Failed to load dashboard — {error}</span>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>
+      {/* ── Header ── */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brand}>
-            <span className={styles.logo}>
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-                <rect x="1" y="1" width="20" height="20" rx="4" fill="var(--color-brand)" opacity="0.18" />
-                <polyline
-                  points="3,16 7,10 11,13 15,7 19,4"
-                  stroke="var(--color-brand)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                />
-              </svg>
+            <span className={styles.logo} aria-label="EquityGauge logo">
+              <span className={styles.logoMark}>▲</span>
+              EquityGauge
             </span>
-            <span className={styles.logoText}>EquityGauge</span>
+            <span className={styles.subtitle}>P/E Ratio Tracker</span>
           </div>
-          <span className={styles.subtitle}>P/E Ratio Tracker</span>
+          <div className={styles.headerMeta}>
+            <span className={styles.companyCount}>
+              {data?.companies?.length ?? 0} companies tracked
+            </span>
+          </div>
         </div>
       </header>
 
+      {/* ── Body ── */}
       <div className={styles.dashboard}>
+        {/* Sidebar */}
         <aside className={styles.sidebar} aria-label="Add company panel">
           <div className={styles.sidebarHeader}>
             <h2 className={styles.sidebarTitle}>Add Company</h2>
-            <p className={styles.sidebarDesc}>Track a new ticker on your watchlist.</p>
+            <p className={styles.sidebarHint}>
+              Enter a ticker symbol to begin tracking its P/E ratio.
+            </p>
           </div>
           <AddCompanyForm onAdded={handleAdded} />
         </aside>
 
+        {/* Main content */}
         <main className={styles.content} aria-label="Watchlist">
           <div className={styles.contentHeader}>
             <h1 className={styles.contentTitle}>Watchlist</h1>
-            {data?.companies?.length > 0 && (
-              <span className={styles.badge}>{data.companies.length} companies</span>
-            )}
+            <span className={styles.refreshBadge} aria-live="polite">
+              {refreshKey > 0 && `Updated ${refreshKey}×`}
+            </span>
           </div>
           <WatchlistTable refreshKey={refreshKey} />
         </main>
