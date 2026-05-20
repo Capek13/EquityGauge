@@ -199,7 +199,7 @@
               "const respons = pm.response.json();",
               "",
               "pm.test(\"contorl message\", () => {",
-              "    pm.expect(respons.message).to.eql(\"Ticker '{{test_ticker}}' created.\");",
+              "    pm.expect(respons.message).to.eql(`Ticker '${pm.variables.get(\"test_ticker\")}' created.`);",
               " });",
               ""
             ],
@@ -297,7 +297,7 @@
               "const respons = pm.response.json();",
               "",
               "pm.test(\"contorl message\", () => {",
-              "    pm.expect(respons.message).to.eql(\"Ticker 'TEST' was removed successfully.\");",
+              "    pm.expect(respons.message).to.eql(`Ticker '${pm.variables.get(\"test_ticker\")}' was removed successfully.`);",
               " });",
               ""
             ],
@@ -352,7 +352,7 @@
               "const respons = pm.response.json();",
               "",
               "pm.test(\"contorl message\", () => {",
-              "    pm.expect(respons.message).to.eql(\"Ticker 'TEST' not found.\");",
+              "    pm.expect(respons.message).to.eql(`Ticker '${pm.variables.get(\"test_ticker\")}' not found.`);",
               " });",
               ""
             ],
