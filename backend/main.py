@@ -93,7 +93,7 @@ async def delete_ticker(ticker: str, request: Request):
             content={"message": "FAIL - data wasn't removed"}
         )
     return {"message": f"Ticker '{ticker}' was removed successfully."}
-    
+
 
 # fastapi dev backend/main.py
 # http://127.0.0.1:8000

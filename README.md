@@ -11,6 +11,7 @@ A financial web app for tracking and comparing stock P/E ratios. Portfolio proje
 - [Getting Started](#getting-started)
   - [Docker (recommended)](#docker-recommended)
   - [Local Development](#local-development)
+- [AI Code Generation Agent](#ai-code-generation-agent)
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [CI/CD](#cicd)
@@ -32,6 +33,7 @@ EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watc
 - Data persistence via `tickers.yaml`
 - Docker support for both backend and frontend
 - CI pipeline: pytest → Postman (Newman) → Docker build
+- AI agent that generates React components from natural-language descriptions via the Claude API
 
 ---
 
@@ -41,6 +43,7 @@ EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watc
 |---|---|
 | Backend | Python 3.11, FastAPI, Selenium, BeautifulSoup4, PyYAML, Pydantic |
 | Frontend | React 19, React Router, Vite |
+| AI Agent | Node.js, Anthropic SDK (Claude Sonnet), prompt caching |
 | Testing | Pytest, Newman (Postman) |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, Docker Compose |
@@ -73,6 +76,14 @@ EquityGauge/
 │   ├── test_scraper.py
 │   ├── test_data_manager.py
 │   └── Main_API_Tests.postman_collection.json
+├── agents/
+│   └── frontend-agent/    # AI agent for React component generation
+│       ├── tools/         # generate, parse, validate, write
+│       ├── prompt/        # system prompt, design guide, few-shot examples
+│       ├── templates/     # react-component, dashboard, landing-page
+│       ├── output/        # generated files land here
+│       ├── config.json
+│       └── run.js
 ├── .github/workflows/
 │   └── ci.yml
 └── docker-compose.yml
@@ -115,6 +126,47 @@ npm run dev
 ```
 
 Frontend available at `http://localhost:5173`.
+
+API available at `http://localhost:8000`. Swagger UI at `http://localhost:8000/docs`.
+
+## AI Code Generation Agent
+
+`agents/frontend-agent` is a Node.js agent that generates production-ready React components from natural-language descriptions by calling the Claude API.
+
+**How it works:**
+
+1. A natural-language prompt describes the desired UI element or page.
+2. The agent sends it to Claude Sonnet with a curated system prompt (API schema, design rules, few-shot examples) and **prompt caching** to reduce latency and cost on repeated runs.
+3. The raw response is parsed into separate JSX and CSS blocks, validated, and written to `output/`.
+4. A final step copies the generated files directly into `frontend/src/components/`.
+
+**Run the agent:**
+
+```bash
+cd agents/frontend-agent
+npm install
+node run.js
+```
+
+**Example — generating the watchlist table:**
+
+```js
+await generate(
+  "Watchlist table showing all companies from GET /companies. " +
+  "For each ticker fetch P/E from GET /companies/{ticker}/pe. " +
+  "Columns: ticker, name, sector, P/E (color-coded: <15 green, 15–30 neutral, >30 red). " +
+  "Each row has a delete button. Show skeleton loading and error banner.",
+  "react-component"
+);
+```
+
+The agent generated all four frontend components in this project (`WatchlistTable`, `AddCompanyForm`, `Dashboard`, `LandingPage`).
+
+| Template type | When to use |
+|---|---|
+| `react-component` | Reusable UI piece (table, card, form) |
+| `dashboard` | Data-heavy page with multiple panels |
+| `landing-page` | Full standalone marketing page |
 
 ---
 
@@ -161,7 +213,7 @@ newman run tests/Main_API_Tests.postman_collection.json \
   --env-var "test_ticker=TEST"
 ```
 
----
+GitHub Actions pipeline (`.github/workflows/ci.yml`) triggers on every push and PR to `main`:
 
 ## CI/CD
 
