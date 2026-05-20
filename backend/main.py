@@ -60,7 +60,7 @@ async def get_companies():
 async def get_pe_ratio(ticker, request: Request):
     scraper = YahooFinanceScraper(ticker,request.app.state.driver.driver)
     pe = scraper.get_pe_ratio()
-    if pe == "null":
+    if pe is None:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"pe": pe}
@@ -93,7 +93,7 @@ async def delete_ticker(ticker: str, request: Request):
             content={"message": "FAIL - data wasn't removed"}
         )
     return {"message": f"Ticker '{ticker}' was removed successfully."}
-    
+
 
 # fastapi dev backend/main.py
 # http://127.0.0.1:8000
