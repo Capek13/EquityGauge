@@ -28,6 +28,24 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: equitygauge
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: equitygauge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://equitygauge:secret@localhost:5432/equitygauge
+
     steps:
       - uses: actions/checkout@v4
 
