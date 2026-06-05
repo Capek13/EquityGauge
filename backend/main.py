@@ -1,14 +1,15 @@
 # main.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from backend.scraper import YahooFinanceSeleniumDriver,YahooFinanceScraper
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from backend.database import get_db
-from backend.models import Ticker, PERatios, Base, engine
+from backend.models import Ticker, PERatios, Base
+from backend.database import engine
 from datetime import date
 
 class TickerRequest(BaseModel):
@@ -45,24 +46,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define a path operation (or "route")
 @app.get("/")
 async def read_root():
-    """
-    This is the first endpoint of our FastAPI application.
-    It returns a simple "Hello, World!" message.
-    """
-
-    return {"message": "Hello, World!"}
+    return RedirectResponse(url="http://localhost:5173")
 
 @app.get("/companies")
 async def get_companies(db: Session = Depends(get_db)):
-    return db.query(Ticker).all()
+    return {"companies": db.query(Ticker).all()}
 
 @app.get("/companies/{ticker}/pe")
 async def get_pe_ratio(ticker: str, request: Request, db: Session = Depends(get_db)):
     last_pe = db.query(PERatios).filter(PERatios.ticker == ticker).order_by(PERatios.creation_date.desc()).first()
     if last_pe is None or last_pe.creation_date < date.today():
+        if request.app.state.driver is None:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"message": "Scraper is unavailable."}
+            )
         scraper = YahooFinanceScraper(ticker,request.app.state.driver.driver)
         pe = scraper.get_pe_ratio()
         if pe is None:
@@ -106,8 +106,3 @@ async def delete_ticker(ticker: str, request: Request, db: Session = Depends(get
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "FAIL - data wasn't removed"}
         )
-
-
-
-# fastapi dev backend/main.py
-# http://127.0.0.1:8000
