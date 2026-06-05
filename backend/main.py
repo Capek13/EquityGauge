@@ -24,11 +24,7 @@ class TickerRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(engine)
-    try:
-        app.state.driver = YahooFinanceSeleniumDriver()
-    except Exception as e:
-        print(f"Failed to initialize Selenium driver: {e}")
-        app.state.driver = None
+    app.state.driver = None
     yield
     if app.state.driver:
         app.state.driver.close_driver()
@@ -57,11 +53,15 @@ async def get_pe_ratio(ticker: str, request: Request, db: Session = Depends(get_
     last_pe = db.query(PERatios).filter(PERatios.ticker == ticker).order_by(PERatios.creation_date.desc()).first()
     if last_pe is None or last_pe.creation_date < date.today():
         if request.app.state.driver is None:
-            return JSONResponse(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"message": "Scraper is unavailable."}
-            )
-        scraper = YahooFinanceScraper(ticker,request.app.state.driver.driver)
+            try:
+                request.app.state.driver = YahooFinanceSeleniumDriver()
+            except Exception as e:
+                print(f"Failed to initialize Selenium driver: {e}")
+                return JSONResponse(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    content={"message": "Scraper is unavailable."}
+                )
+        scraper = YahooFinanceScraper(ticker, request.app.state.driver.driver)
         pe = scraper.get_pe_ratio()
         if pe is None:
             return JSONResponse(
