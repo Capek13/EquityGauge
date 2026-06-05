@@ -21,19 +21,15 @@ class TickerRequest(BaseModel):
     watchlist: bool = True
     industry: str | None = None
 
-Base.metadata.create_all(engine)
-
-# Create an instance of the FastAPI application
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup — runs on application start
+    Base.metadata.create_all(engine)
     try:
         app.state.driver = YahooFinanceSeleniumDriver()
     except Exception as e:
         print(f"Failed to initialize Selenium driver: {e}")
         app.state.driver = None
     yield
-    # Shutdown — runs on application stop
     if app.state.driver:
         app.state.driver.close_driver()
 
