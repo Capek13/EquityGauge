@@ -56,6 +56,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Install Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+          sudo ln -sf /usr/bin/chromium-browser /usr/bin/chromium
+
       - name: Start backend
         run: uvicorn backend.main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
 
@@ -73,11 +79,14 @@ jobs:
           cat /tmp/backend.log
           exit 1
 
+      - name: Seed database
+        run: python -m backend.seed
+
       - name: Install Newman
         run: npm install -g newman
 
       - name: Run Postman tests
-        run: newman run tests/Main_API_Tests.postman_collection.json --env-var "baseUrl=http://localhost:8000" --env-var "ticker=AAPL" --env-var "test_ticker=TEST"
+        run: newman run tests/Main_API_Tests.postman_collection.json --ignore-redirects --env-var "baseUrl=http://localhost:8000" --env-var "ticker=AAPL" --env-var "test_ticker=TEST"
 
   build:
     runs-on: ubuntu-latest
