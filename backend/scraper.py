@@ -35,7 +35,9 @@ class YahooFinanceSeleniumDriver:
                 options.binary_location = binary
                 break
 
-        return webdriver.Chrome(options=options)
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(15)
+        return driver
 
     def accept_cookies(self):
         """Attempts to find and click the 'Accept all' cookies button on Yahoo Finance."""
