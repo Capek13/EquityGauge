@@ -1,5 +1,7 @@
 # EquityGauge
 
+![CI](https://github.com/Capek13/EquityGauge/actions/workflows/ci.yml/badge.svg)
+
 A financial web app for tracking and comparing stock P/E ratios. Portfolio project focused on FastAPI, React, web scraping, testing, and CI/CD.
 
 ## Table of Contents
@@ -22,6 +24,8 @@ A financial web app for tracking and comparing stock P/E ratios. Portfolio proje
 ## About
 
 EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watchlist of companies. The backend scrapes Yahoo Finance using Selenium, persists the ticker list in a YAML file, and exposes a REST API. The React frontend displays the watchlist with support for adding and removing tickers.
+
+![Dashboard](docs/images/loading_ticker.png)
 
 ---
 
