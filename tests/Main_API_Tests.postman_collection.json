@@ -13,15 +13,13 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test(\"Status code is 307\", function () {",
+              "    pm.response.to.have.status(307);",
               "});",
               "",
-              "const respons = pm.response.json();",
-              "",
-              "pm.test(\"contorl message\", () => {",
-              "    pm.expect(respons.message).to.eql(\"Hello, World!\");",
-              " });"
+              "pm.test(\"Redirects to frontend\", function () {",
+              "    pm.expect(pm.response.headers.get(\"location\")).to.eql(\"http://localhost:5173\");",
+              "});"
             ],
             "type": "text/javascript",
             "packages": {},
@@ -72,13 +70,12 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },
@@ -222,13 +219,12 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },
@@ -271,13 +267,12 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },

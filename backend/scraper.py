@@ -1,14 +1,13 @@
 # scraper.py
 from bs4 import BeautifulSoup
+import os
 import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import time
-from backend.data_manager import DataManager
 
 
 class YahooFinanceSeleniumDriver:
@@ -31,13 +30,14 @@ class YahooFinanceSeleniumDriver:
         options.add_argument("--disable-gpu")
         options.add_argument(f"user-agent={self.USER_AGENT}")
 
-        import os
-        if os.path.exists("/usr/bin/chromium"):
-            options.binary_location = "/usr/bin/chromium"
-            service = Service("/usr/bin/chromedriver")
-            return webdriver.Chrome(service=service, options=options)
+        for binary in ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome"]:
+            if os.path.exists(binary):
+                options.binary_location = binary
+                break
 
-        return webdriver.Chrome(options=options)
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(15)
+        return driver
 
     def accept_cookies(self):
         """Attempts to find and click the 'Accept all' cookies button on Yahoo Finance."""

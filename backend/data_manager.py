@@ -131,7 +131,7 @@ class DataManager:
         data = self.load_yaml(required_key)
 
         for ticker in data[required_key]:
-            if ticker.get("ticker") == ticker:
+            if ticker.get("ticker") == required_ticker:
                 if isinstance(new_data, dict):
                     ticker.update(new_data)
                 elif isinstance(new_data, str):
