@@ -7,9 +7,8 @@ from backend.scraper import YahooFinanceSeleniumDriver,YahooFinanceScraper
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from backend.database import get_db
+from backend.database import get_db, engine
 from backend.models import Ticker, PERatios, Base
-from backend.database import engine
 from datetime import date
 
 class TickerRequest(BaseModel):
