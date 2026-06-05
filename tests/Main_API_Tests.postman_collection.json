@@ -70,13 +70,12 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },
@@ -220,13 +219,12 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },
@@ -269,13 +267,12 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/companies/",
+          "raw": "{{baseUrl}}/companies",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
-            "companies",
-            ""
+            "companies"
           ]
         }
       },
