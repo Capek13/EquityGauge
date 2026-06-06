@@ -1,4 +1,5 @@
 # main.py
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -30,16 +31,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_URL],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 @app.get("/")
 async def read_root():
-    return RedirectResponse(url="http://localhost:5173")
+    return RedirectResponse(url=FRONTEND_URL)
 
 @app.get("/companies")
 async def get_companies(db: Session = Depends(get_db)):

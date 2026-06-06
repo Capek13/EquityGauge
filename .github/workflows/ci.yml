@@ -82,6 +82,10 @@ jobs:
       - name: Run Postman tests
         run: newman run tests/Main_API_Tests.postman_collection.json --ignore-redirects --env-var "baseUrl=http://localhost:8000" --env-var "ticker=AAPL" --env-var "test_ticker=TEST"
 
+      - name: Show backend log on failure
+        if: failure()
+        run: cat /tmp/backend.log
+
   build:
     runs-on: ubuntu-latest
     needs: [test, postman]
