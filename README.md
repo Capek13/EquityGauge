@@ -4,6 +4,10 @@
 
 A financial web app for tracking and comparing stock P/E ratios. Portfolio project focused on FastAPI, React, web scraping, testing, and CI/CD.
 
+**Live demo:**
+- [Homepage](https://beneficial-delight-production-402d.up.railway.app)
+- [Watchlist](https://beneficial-delight-production-402d.up.railway.app/dashboard)
+
 ## Table of Contents
 
 - [About](#about)
@@ -17,6 +21,8 @@ A financial web app for tracking and comparing stock P/E ratios. Portfolio proje
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [CI/CD](#cicd)
+- [Deployment](#deployment)
+- [Known Limitations](#known-limitations)
 - [License](#license)
 
 ---
@@ -228,6 +234,27 @@ GitHub Actions pipeline (`.github/workflows/ci.yml`) triggers on every push and 
 3. **build** — builds the backend Docker image
 
 The pipeline can also be triggered manually via `workflow_dispatch`.
+
+---
+
+## Deployment
+
+The app is deployed on [Railway](https://railway.com/) as three connected services — frontend (nginx serving the Vite production build), backend (FastAPI + Selenium), and a managed PostgreSQL database:
+
+![Railway architecture](docs/images/railway_architecture.png)
+
+- The frontend's `VITE_API_URL` and the backend's `FRONTEND_URL` are wired together via Railway's `${{ service.RAILWAY_PUBLIC_DOMAIN }}` variable references, so the public URLs stay in sync automatically.
+- `DATABASE_URL` is injected automatically from the PostgreSQL plugin via `${{ Postgres.DATABASE_URL }}`.
+
+---
+
+## Known Limitations
+
+**P/E ratios may occasionally show as unavailable in the deployed environment.**
+
+The scraper runs a headless Chrome instance via Selenium, which is memory-intensive (typically 300–500 MB per page render). On constrained hosting (e.g. Railway's 1 GB plan), Chrome can crash mid-scrape (`tab crashed`), causing that request to return a "not found" result. The backend detects crashed sessions and automatically restarts the driver for subsequent requests, but a given ticker may need a few retries before its P/E ratio is successfully cached.
+
+Once a ratio is fetched successfully, it's cached in the database for the day, so repeated requests for the same ticker on the same day are unaffected.
 
 ---
 
