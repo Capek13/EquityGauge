@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import os
 import re
 from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -30,6 +31,17 @@ class YahooFinanceSeleniumDriver:
         options.add_argument("--disable-gpu")
         options.add_argument(f"user-agent={self.USER_AGENT}")
 
+        # Reduce memory footprint - headless Chrome easily exhausts small containers
+        options.add_argument("--window-size=800,600")
+        options.add_argument("--blink-settings=imagesEnabled=false")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-background-networking")
+        options.add_argument("--disable-default-apps")
+        options.add_argument("--disable-sync")
+        options.add_argument("--mute-audio")
+        options.add_argument("--disable-software-rasterizer")
+        options.add_argument("--js-flags=--max-old-space-size=128")
+
         for binary in ["/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome"]:
             if os.path.exists(binary):
                 options.binary_location = binary
@@ -52,6 +64,14 @@ class YahooFinanceSeleniumDriver:
             print(f"Clicked 'Accept all' button for {self.TARGETED_URL}")
         except Exception as e:
             print(f"No 'Accept all' button found or not clickable: {e}")
+
+    def is_alive(self) -> bool:
+        """Checks whether the underlying Chrome session is still responsive (e.g. hasn't crashed)."""
+        try:
+            _ = self.driver.title
+            return True
+        except WebDriverException:
+            return False
 
     def close_driver(self):
         """Closes the Selenium WebDriver."""
