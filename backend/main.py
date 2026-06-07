@@ -54,6 +54,10 @@ async def get_pe_ratio(ticker: str, request: Request, db: Session = Depends(get_
         return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"pe": None})
     last_pe = db.query(PERatios).filter(PERatios.ticker == ticker).order_by(PERatios.creation_date.desc()).first()
     if last_pe is None or last_pe.creation_date < date.today():
+        if request.app.state.driver is not None and not request.app.state.driver.is_alive():
+            print("Selenium driver session is no longer responsive, restarting it.")
+            request.app.state.driver.close_driver()
+            request.app.state.driver = None
         if request.app.state.driver is None:
             try:
                 request.app.state.driver = YahooFinanceSeleniumDriver()
