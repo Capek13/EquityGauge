@@ -29,7 +29,7 @@ A financial web app for tracking and comparing stock P/E ratios. Portfolio proje
 
 ## About
 
-EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watchlist of companies. The backend scrapes Yahoo Finance using Selenium, persists the ticker list in a YAML file, and exposes a REST API. The React frontend displays the watchlist with support for adding and removing tickers.
+EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watchlist of companies. Selenium loads the Yahoo Finance page in a headless browser; BeautifulSoup then parses the rendered HTML to extract the P/E value. Scraped ratios are cached daily in PostgreSQL so repeated requests don't re-trigger the scraper. The React frontend displays the watchlist with support for adding and removing tickers.
 
 ![Dashboard](docs/images/loading_ticker.png)
 
@@ -37,11 +37,13 @@ EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watc
 
 ## Features
 
-- Trailing P/E scraping from Yahoo Finance (Selenium + BeautifulSoup)
+- Trailing P/E scraping from Yahoo Finance — Selenium renders the page, BeautifulSoup parses the HTML
+- Daily caching of scraped ratios in PostgreSQL (scraper only runs when data is stale or missing)
+- Self-healing scraper: detects crashed Chrome sessions and automatically restarts the driver
 - REST API for watchlist management (GET, POST, DELETE)
 - React frontend with a dashboard, watchlist table, and add-company form
-- Data persistence via `tickers.yaml`
-- Docker support for both backend and frontend
+- CORS configured via environment variable — same codebase works locally and in production
+- Multi-stage Dockerfile: hot-reloading dev server and optimized nginx production build from a single file
 - CI pipeline: pytest → Postman (Newman) → Docker build
 - AI agent that generates React components from natural-language descriptions via the Claude API
 
@@ -51,12 +53,13 @@ EquityGauge lets you quickly retrieve and compare Trailing P/E ratios for a watc
 
 | Layer | Stack |
 |---|---|
-| Backend | Python 3.11, FastAPI, Selenium, BeautifulSoup4, PyYAML, Pydantic |
-| Frontend | React 19, React Router, Vite |
+| Backend | Python 3.11, FastAPI, SQLAlchemy, PostgreSQL, Selenium, BeautifulSoup4, Pydantic |
+| Frontend | React 19, React Router, Vite, nginx (production) |
 | AI Agent | Node.js, Anthropic SDK (Claude Sonnet), prompt caching |
 | Testing | Pytest, Newman (Postman) |
 | CI/CD | GitHub Actions |
-| Containerization | Docker, Docker Compose |
+| Containerization | Docker (multi-stage), Docker Compose |
+| Deployment | Railway (3 services: frontend, backend, PostgreSQL) |
 
 ---
 
@@ -252,7 +255,9 @@ The app is deployed on [Railway](https://railway.com/) as three connected servic
 
 **P/E ratios may occasionally show as unavailable in the deployed environment.**
 
-The scraper runs a headless Chrome instance via Selenium, which is memory-intensive (typically 300–500 MB per page render). On constrained hosting (e.g. Railway's 1 GB plan), Chrome can crash mid-scrape (`tab crashed`), causing that request to return a "not found" result. The backend detects crashed sessions and automatically restarts the driver for subsequent requests, but a given ticker may need a few retries before its P/E ratio is successfully cached.
+The scraper runs a headless Chrome instance via Selenium, which is memory-intensive (typically 300–500 MB per page render). On constrained hosting (e.g. Railway's 1 GB plan), Chrome can crash mid-scrape (`tab crashed`), causing that request to return a "not found" result.
+
+Two mitigations are in place: Chrome's memory footprint is reduced via launch flags (smaller viewport, images disabled, extensions/sync/audio disabled, V8 heap capped), and the backend detects dead sessions via an `is_alive()` probe — automatically closing and restarting the driver before the next request. A given ticker may still need a few retries before its P/E ratio is successfully cached.
 
 Once a ratio is fetched successfully, it's cached in the database for the day, so repeated requests for the same ticker on the same day are unaffected.
 
